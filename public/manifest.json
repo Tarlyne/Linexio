@@ -1,0 +1,22 @@
+{
+  "short_name": "Linexio",
+  "name": "Linexio - Der Lehrer-Assistent",
+  "icons": [
+    {
+      "src": "/public/logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/public/logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1f2937",
+  "background_color": "#111827"
+}

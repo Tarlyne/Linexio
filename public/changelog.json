@@ -1,0 +1,81 @@
+{
+  "versions": [
+    {
+      "version": "0.9.64-alpha",
+      "date": "2025-11-29",
+      "changes": [
+        "Stabilität: Der Inaktivitäts-Schutz wurde überarbeitet und funktioniert nun zuverlässig auch nach längeren Standby-Phasen des iPads.",
+        "Update-System: Die App erkennt neue Versionen nun schneller und zuverlässiger.",
+        "Feature: Klausuraufgaben können optional mit Themen/Inhalten versehen werden.",
+        "KI-Verbesserung: Das KI-Feedback berücksichtigt nun auch die Themen der einzelnen Aufgaben für präzisere Rückmeldungen."
+      ]
+    },
+    {
+      "version": "0.9.61-alpha",
+      "date": "2025-11-20",
+      "changes": [
+        "Kritischer Fix: Termine werden nun beim App-Start korrekt geladen.",
+        "UX-Optimierung: Eingabefelder für Datum und Zeit haben jetzt einen 'Löschen'-Button, um Fehleingaben (insb. auf iOS) einfach zurückzusetzen.",
+        "iPad-Optimierung: Layout-Probleme im 'Termin erstellen'-Fenster auf Apple-Geräten behoben.",
+        "iPad-Optimierung: Splashscreens werden im Querformat nun korrekt und unverzerrt dargestellt."
+      ]
+    },
+    {
+      "version": "0.9.60-alpha",
+      "date": "2025-11-20",
+      "changes": [
+        "Neues Feature: 'Termine' - Eine umfassende Agenda für Lehrkräfte (Klausuren, Elterngespräche, Konferenzen).",
+        "Smart-Feature: Automatische Erkennung von Schülern mit Nachteilsausgleich (NTA) beim Planen von Klausuren.",
+        "Smart-Feature: Automatische Anzeige gesetzlicher Feiertage basierend auf dem gewählten Bundesland.",
+        "Namenstraining: Diverse Optimierungen für iPad/Touch-Geräte (Rendering-Fixes, bessere Touch-Reaktion) und Layout-Verbesserungen im Lernmodus.",
+        "Schülerakte: Profilbilder können nun wieder entfernt werden."
+      ]
+    },
+    {
+      "version": "0.9.55-alpha",
+      "date": "2025-11-19",
+      "changes": [
+        "Neues Feature: 'Namenstraining' zum spielerischen Lernen von Schülernamen integriert.",
+        "Namenstraining: Bietet verschiedene Quiz-Modi (Bild->Name, Name->Bild, Texteingabe) und einen Lernmodus mit digitalen Karteikarten.",
+        "Navigation: Neuer Hauptmenüpunkt 'Persönliches' eingeführt. Der Bereich 'Notizen' wurde hierhin verschoben.",
+        "UX: Optimiertes Layout und direktes visuelles Feedback im Trainingsmodus."
+      ]
+    },
+    {
+      "version": "0.9.50-alpha",
+      "date": "2025-11-18",
+      "changes": [
+        "Neue Funktion 'Notenstruktur übertragen' implementiert.",
+        "Das Backup-System wurde um eine intelligente Versionsprüfung erweitert, um die Datensicherheit bei der Wiederherstellung zu erhöhen."
+      ]
+    },
+    {
+      "version": "0.9.45-alpha",
+      "date": "2025-11-17",
+      "changes": [
+        "Logikfehler beim Löschen von Leistungsnachweisen behoben.",
+        "KI-Feedback verbessert: Unterscheidet nun zwischen 'Klausur' und 'Klassenarbeit' und vermeidet das Einfügen von Schülernamen im Fließtext.",
+        "UI-Optimierung: Lange Aufgabennamen in der Notenübersicht werden nun korrekt gekürzt."
+      ]
+    },
+    {
+      "version": "0.9.42-alpha",
+      "date": "2025-11-15",
+      "changes": [
+        "Verbesserte Download-Anleitung: Auf Apple-Geräten wird nun vor dem Download ein klarer Dialog angezeigt, der den Speicherprozess erklärt und die bisherige, irreführende Nutzererfahrung ersetzt.",
+        "Biometrie-Funktion angepasst: Da die biometrische Entsperrung für Offline-Anwendungen von Apple-Geräten nicht unterstützt wird, wird die Option dort nun mit einem entsprechenden Hinweis ausgeblendet.",
+        "Feedback-System modernisiert: Die fehleranfällige Screenshot-Funktion wurde durch einen zuverlässigen, nativen Dateianhang ersetzt. Das Feedback-Modal wurde zu einem einzigen, klaren Kanal für alle Anliegen zusammengeführt.",
+        "Technische Schulden reduziert: Die externe Bibliothek 'html2canvas' und alle zugehörigen CSS-Anpassungen wurden vollständig entfernt, was die App schlanker und wartbarer macht."
+      ]
+    },
+    {
+      "version": "0.9.25-alpha",
+      "date": "2025-11-12",
+      "changes": [
+        "KI-Feedback optimiert: Die von der KI generierten Feedbacktexte für Klausuren sind nun stilistisch passender. Sie sprechen SchülerInnen nicht mehr im Fließtext namentlich an und verzichten auf die Nennung expliziter Punktzahlen oder Noten, um die Flexibilität für Lehrkräfte bei nachträglichen Anpassungen zu erhöhen.",
+        "Stabilität der KI-Funktionen verbessert: Bei kurzzeitigen Störungen der KI-Verbindung unternimmt die App nun automatisch mehrere Versuche im Hintergrund, was die Erfolgsrate deutlich erhöht. Fehlermeldungen sind jetzt spezifischer und geben klarere Handlungshinweise.",
+        "Logik verifiziert: Die Ermittlung der besten/schlechtesten Leistung in der Klausurauswertung basiert nun nachweislich auf dem exakten prozentualen Ergebnis und nicht mehr nur auf der Note, um die Genauigkeit zu maximieren."
+      ]
+    }
+  ]
+}
