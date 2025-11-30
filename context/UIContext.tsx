@@ -132,7 +132,7 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
   }, [updateRegistration]);
   
   useEffect(() => {
-    fetch('/public/changelog.json')
+    fetch('changelog.json')
         .then(res => {
             if (!res.ok) throw new Error('Changelog konnte nicht geladen werden.');
             return res.json();
@@ -160,7 +160,7 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
       const registerServiceWorker = async () => {
           if ('serviceWorker' in navigator) {
               try {
-                  const reg = await navigator.serviceWorker.register('/public/service-worker.js', { scope: '/' });
+                  const reg = await navigator.serviceWorker.register('service-worker.js', { scope: './' });
                   registrationRef.current = reg;
 
                   // Initial check: is there already a waiting worker?
