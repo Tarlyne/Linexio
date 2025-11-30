@@ -6,7 +6,6 @@ const CACHE_NAME = 'linexio-v34';
 const urlsToCache = [
   './',
   'index.html',
-  'index.tsx',
   'manifest.json',
   'logo192.png',
   'logo512.png',
