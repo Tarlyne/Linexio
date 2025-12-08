@@ -1,0 +1,7 @@
+{
+  "name": "Linexio",
+  "description": "Linexio ist ein moderner, offline-fähiger Lehrer-Assistent zur Verwaltung von Klassen, Schülern und Noten. Optimiert für das iPad.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
