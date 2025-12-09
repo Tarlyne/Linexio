@@ -203,7 +203,7 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
                       const installingWorker = reg.installing;
                       if (installingWorker) {
                           installingWorker.onstatechange = () => {
-                              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                              if (installingWorker.state === 'installed' && !!reg.active) {
                                   console.log('New content is available for update (detected via onstatechange).');
                                   setUpdateRegistration(reg);
                               }

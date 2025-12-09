@@ -99,7 +99,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
         <Modal isOpen={isOpen} onClose={onClose} title="Update-Infos" size="lg">
             {renderContent()}
             <div className="flex justify-end pt-6">
-                <Button onClick={onClose} className="w-full sm:w-auto">Cool, verstanden!</Button>
+                <Button onClick={onClose} className="w-full sm:w-auto">Verstanden!</Button>
             </div>
         </Modal>
     );
