@@ -254,6 +254,20 @@ export interface Sitzplan {
     aiPrompt?: string;
 }
 
+// NEU: Gruppeneinteilung
+export interface Gruppe {
+    id: string;
+    name: string;
+    schuelerIds: string[];
+}
+
+export interface GruppenEinteilung {
+    id: string; // uuid, usually linked to lerngruppeId or unique
+    lerngruppeId: string;
+    gruppen: Gruppe[];
+    // Wir speichern "nicht zugeordnet" nicht explizit, da dies dynamisch berechnet wird.
+}
+
 export interface NotizKategorie {
     id: string;
     name: string;
@@ -334,4 +348,16 @@ export interface FeedbackPayload {
     metadata: FeedbackMetadata;
     screenshot?: string; // base64
     email?: string;
+}
+
+// --- Changelog ---
+export interface ChangelogVersion {
+  version: string;
+  date: string;
+  changes: string[];
+}
+
+export interface ChangelogData {
+  _comment?: string;
+  versions: ChangelogVersion[];
 }

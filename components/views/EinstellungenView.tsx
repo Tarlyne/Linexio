@@ -695,25 +695,14 @@ const DatenschutzTab: React.FC = () => {
 };
 
 const InfoTab: React.FC = () => {
-    const { appVersion } = useUIContext();
-    const [versions, setVersions] = useState<{ version: string; date: string; changes: string[]; }[]>([]);
+    const { appVersion, changelogData } = useUIContext();
     const [activeVersion, setActiveVersion] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch('/public/changelog.json')
-            .then(res => {
-                if (!res.ok) throw new Error('Changelog konnte nicht geladen werden.');
-                return res.json();
-            })
-            .then(data => {
-                const sortedVersions = data.versions.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                setVersions(sortedVersions);
-                if (sortedVersions.length > 0) {
-                    setActiveVersion(sortedVersions[0].version);
-                }
-            })
-            .catch(console.error);
-    }, []);
+        if (changelogData && changelogData.versions.length > 0) {
+             setActiveVersion(changelogData.versions[0].version);
+        }
+    }, [changelogData]);
 
     const toggleVersion = (version: string) => {
         setActiveVersion(prev => (prev === version ? null : version));
@@ -735,11 +724,11 @@ const InfoTab: React.FC = () => {
                 </p>
             </div>
             
-            {versions.length > 0 && (
+            {changelogData && changelogData.versions.length > 0 && (
                 <div className="space-y-4">
                     <h3 className="text-xl font-bold text-[var(--color-accent-text)] mb-2">Versionshistorie</h3>
                     <div className="space-y-2">
-                        {versions.map((version) => (
+                        {changelogData.versions.map((version) => (
                             <div key={version.version} className="bg-[var(--color-ui-highlight)] rounded-lg border border-[var(--color-border)]">
                                 <button 
                                     onClick={() => toggleVersion(version.version)}

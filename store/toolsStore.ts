@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
 import {
-    Checkliste, ChecklistenEintrag, ChecklistenStatusValue, Sitzplan, SchuelerPlatzierung, Lerngruppe, Schueler, NotizKategorie, Notiz
+    Checkliste, ChecklistenEintrag, ChecklistenStatusValue, Sitzplan, SchuelerPlatzierung, Lerngruppe, Schueler, NotizKategorie, Notiz, GruppenEinteilung, Gruppe
 } from '../context/types';
 import { db } from './db';
-import { PICKED_SCHUELER_KEY, CHECKLISTEN_KEY, CHECKLISTEN_EINTRAEGE_KEY, CHECKLISTEN_STATI_KEY, SITZPLAENE_KEY, NOTIZEN_KEY, NOTIZ_KATEGORIEN_KEY } from './keys';
+import { PICKED_SCHUELER_KEY, CHECKLISTEN_KEY, CHECKLISTEN_EINTRAEGE_KEY, CHECKLISTEN_STATI_KEY, SITZPLAENE_KEY, NOTIZEN_KEY, NOTIZ_KATEGORIEN_KEY, GRUPPEN_EINTEILUNGEN_KEY } from './keys';
 
 // --- State & Listener Setup ---
 
@@ -13,6 +13,7 @@ interface ToolsState {
     checklistenEintraege: ChecklistenEintrag[];
     checklistenStati: { [eintragId: string]: { [schuelerId: string]: ChecklistenStatusValue } };
     sitzplaene: Sitzplan[];
+    gruppenEinteilungen: GruppenEinteilung[];
     notizKategorien: NotizKategorie[];
     notizen: Notiz[];
 }
@@ -23,6 +24,7 @@ let state: ToolsState = {
     checklistenEintraege: [],
     checklistenStati: {},
     sitzplaene: [],
+    gruppenEinteilungen: [],
     notizKategorien: [],
     notizen: [],
 };
@@ -39,6 +41,7 @@ const persistState = async () => {
     await db.set(CHECKLISTEN_EINTRAEGE_KEY, state.checklistenEintraege);
     await db.set(CHECKLISTEN_STATI_KEY, state.checklistenStati);
     await db.set(SITZPLAENE_KEY, state.sitzplaene);
+    await db.set(GRUPPEN_EINTEILUNGEN_KEY, state.gruppenEinteilungen);
     await db.set(NOTIZ_KATEGORIEN_KEY, state.notizKategorien);
     await db.set(NOTIZEN_KEY, state.notizen);
 };
@@ -167,6 +170,9 @@ const cleanupOrphanedData = async (lerngruppen: Lerngruppe[]) => {
 
     const relevantSitzplaene = state.sitzplaene.filter(sp => lerngruppenIds.has(sp.lerngruppeId));
     if (relevantSitzplaene.length !== state.sitzplaene.length) hasChanged = true;
+    
+    const relevantGruppenEinteilungen = state.gruppenEinteilungen.filter(ge => lerngruppenIds.has(ge.lerngruppeId));
+    if (relevantGruppenEinteilungen.length !== state.gruppenEinteilungen.length) hasChanged = true;
 
     const relevantChecklisten = state.checklisten.filter(c => lerngruppenIds.has(c.lerngruppeId));
     if (relevantChecklisten.length !== state.checklisten.length) hasChanged = true;
@@ -186,6 +192,7 @@ const cleanupOrphanedData = async (lerngruppen: Lerngruppe[]) => {
         state = {
             ...state,
             sitzplaene: relevantSitzplaene,
+            gruppenEinteilungen: relevantGruppenEinteilungen,
             checklisten: relevantChecklisten,
             checklistenEintraege: relevantEintraege,
             checklistenStati: relevantStati,
@@ -195,6 +202,33 @@ const cleanupOrphanedData = async (lerngruppen: Lerngruppe[]) => {
         notify();
     }
 };
+
+// --- Gruppen Actions ---
+
+const updateGruppenEinteilung = async (lerngruppeId: string, gruppen: Gruppe[]) => {
+    const existingIndex = state.gruppenEinteilungen.findIndex(ge => ge.lerngruppeId === lerngruppeId);
+    let newEinteilungen = [...state.gruppenEinteilungen];
+    
+    if (existingIndex > -1) {
+        newEinteilungen[existingIndex] = { ...newEinteilungen[existingIndex], gruppen };
+    } else {
+        newEinteilungen.push({ id: uuidv4(), lerngruppeId, gruppen });
+    }
+    
+    state = { ...state, gruppenEinteilungen: newEinteilungen };
+    await persistState();
+    notify();
+};
+
+const resetGruppenEinteilung = async (lerngruppeId: string) => {
+    state = {
+        ...state,
+        gruppenEinteilungen: state.gruppenEinteilungen.filter(ge => ge.lerngruppeId !== lerngruppeId)
+    };
+    await persistState();
+    notify();
+};
+
 
 // --- Notizen Actions ---
 const addNotizKategorie = async (name: string, icon: string): Promise<NotizKategorie> => {
@@ -268,6 +302,7 @@ export async function initToolsStore() {
         checklistenEintraege: await db.get<ChecklistenEintrag[]>(CHECKLISTEN_EINTRAEGE_KEY) || [],
         checklistenStati: await db.get<{[eintragId: string]: { [schuelerId: string]: ChecklistenStatusValue }}>(CHECKLISTEN_STATI_KEY) || {},
         sitzplaene: cleanedSitzplaene,
+        gruppenEinteilungen: await db.get<GruppenEinteilung[]>(GRUPPEN_EINTEILUNGEN_KEY) || [],
         notizKategorien: await db.get<NotizKategorie[]>(NOTIZ_KATEGORIEN_KEY) || [],
         notizen: await db.get<Notiz[]>(NOTIZEN_KEY) || [],
     };
@@ -296,6 +331,9 @@ export const toolsStore = {
         updateSitzplan,
         createDefaultSitzplaene,
         cleanupOrphanedData,
+        // Gruppen
+        updateGruppenEinteilung,
+        resetGruppenEinteilung,
         // Notizen
         addNotizKategorie,
         updateNotizKategorie,

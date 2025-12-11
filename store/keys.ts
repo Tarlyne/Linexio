@@ -40,6 +40,7 @@ export const CHECKLISTEN_KEY = 'checklisten';
 export const CHECKLISTEN_EINTRAEGE_KEY = 'checklistenEintraege';
 export const CHECKLISTEN_STATI_KEY = 'checklistenStati';
 export const SITZPLAENE_KEY = 'sitzplaene';
+export const GRUPPEN_EINTEILUNGEN_KEY = 'gruppenEinteilungen'; // NEU
 export const NOTIZEN_KEY = 'notizen';
 export const NOTIZ_KATEGORIEN_KEY = 'notizKategorien';
 export const TERMINE_KEY = 'termine';
@@ -66,6 +67,7 @@ export const DB_KEYS = [
     CHECKLISTEN_EINTRAEGE_KEY,
     CHECKLISTEN_STATI_KEY,
     SITZPLAENE_KEY,
+    GRUPPEN_EINTEILUNGEN_KEY, // NEU
     NOTIZEN_KEY,
     NOTIZ_KATEGORIEN_KEY,
     TERMINE_KEY,

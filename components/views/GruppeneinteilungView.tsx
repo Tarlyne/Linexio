@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { useLerngruppenContext } from '../../context/LerngruppenContext';
-import { Schueler } from '../../context/types';
+import { Schueler, Gruppe } from '../../context/types';
 import Button from '../ui/Button';
-import { PlusIcon, SparklesIcon, AdjustmentsHorizontalIcon, UsersIcon, ChevronDownIcon, InformationCircleIcon } from '../icons';
+import { PlusIcon, SparklesIcon, AdjustmentsHorizontalIcon, UsersIcon, ChevronDownIcon, InformationCircleIcon, PencilIcon, CalculatorIcon } from '../icons';
 import Select from '../ui/Select';
 import Input from '../ui/Input';
 import SchuelerDndCard from '../ui/SchuelerDndCard';
@@ -13,6 +14,7 @@ import { useUIContext } from '../../context/UIContext';
 import SegmentedControl, { SegmentedControlOption } from '../ui/SegmentedControl';
 import { useLicenseContext } from '../../context/LicenseContext';
 import SupporterModal from '../modals/SupporterModal';
+import GroupGradingModal from '../modals/GroupGradingModal';
 
 type Mode = 'zufällig' | 'manuell' | 'intelligent';
 type EinteilungNach = 'groupCount' | 'groupSize';
@@ -22,10 +24,11 @@ const GruppeneinteilungView: React.FC = () => {
     const {
         selectedLerngruppe,
         schuelerInSelectedLerngruppe,
+        allSchueler
     } = useLerngruppenContext();
     
     const { onBackToLerngruppeDetail, currentSchoolYear, systemSchoolYear, onSetCurrentSchoolYear, setHeaderConfig } = useUIContext();
-    const { ai } = useToolsContext();
+    const { ai, gruppenEinteilungen, onUpdateGruppenEinteilung, onResetGruppenEinteilung } = useToolsContext();
     const { licenseStatus } = useLicenseContext();
 
     const [mode, setMode] = useState<Mode>('zufällig');
@@ -33,11 +36,13 @@ const GruppeneinteilungView: React.FC = () => {
     const [anzahl, setAnzahl] = useState<string>('2');
     const [kriterium, setKriterium] = useState<Kriterium>('zufaellig');
     
-    const [gruppen, setGruppen] = useState<Schueler[][]>([]);
-    const [nichtZugeordnet, setNichtZugeordnet] = useState<Schueler[]>([]);
+    // UI State for renaming
+    const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+    const [editingGroupName, setEditingGroupName] = useState('');
     
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const [isSupporterModalOpen, setIsSupporterModalOpen] = useState(false);
+    const [isGradingModalOpen, setIsGradingModalOpen] = useState(false); // NEW
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
     const [aiPrompt, setAiPrompt] = useState('');
@@ -49,6 +54,7 @@ const GruppeneinteilungView: React.FC = () => {
     const settingsButtonRef = useRef<HTMLButtonElement>(null);
     const settingsPanelRef = useRef<HTMLDivElement>(null);
     const schuelerListButtonRef = useRef<HTMLButtonElement>(null);
+    const nameInputRef = useRef<HTMLInputElement>(null);
     
     const isArchivedView = currentSchoolYear !== systemSchoolYear;
     const isSupporter = licenseStatus === 'PRO' || licenseStatus === 'ALPHA_TESTER';
@@ -81,20 +87,28 @@ const GruppeneinteilungView: React.FC = () => {
         }
     }, [selectedLerngruppe, isArchivedView, currentSchoolYear, systemSchoolYear, onSetCurrentSchoolYear, setHeaderConfig, onBackToLerngruppeDetail]);
 
+    // Data handling
+    const currentGruppen = useMemo(() => {
+        if (!selectedLerngruppe) return [];
+        return gruppenEinteilungen.find(ge => ge.lerngruppeId === selectedLerngruppe.id)?.gruppen || [];
+    }, [gruppenEinteilungen, selectedLerngruppe]);
+
+    const nichtZugeordnet = useMemo(() => {
+        if (!selectedLerngruppe) return [];
+        const assignedIds = new Set(currentGruppen.flatMap(g => g.schuelerIds));
+        return schuelerInSelectedLerngruppe.filter(s => !assignedIds.has(s.id)).sort((a,b) => a.lastName.localeCompare(b.lastName));
+    }, [currentGruppen, schuelerInSelectedLerngruppe, selectedLerngruppe]);
+
+    // Auto-open/close sidebar based on assignment
     useEffect(() => {
-        setNichtZugeordnet([...schuelerInSelectedLerngruppe].sort((a,b) => a.lastName.localeCompare(b.lastName)));
-        setGruppen([]);
-        setIsSchuelerListOpen(true);
-    }, [schuelerInSelectedLerngruppe]);
-    
-    useEffect(() => {
-        if (nichtZugeordnet.length === 0 && gruppen.length > 0) {
+        if (nichtZugeordnet.length === 0 && currentGruppen.length > 0) {
             setIsSchuelerListOpen(false);
-        } else if (nichtZugeordnet.length > 0 && gruppen.length === 0) {
+        } else if (nichtZugeordnet.length > 0 && currentGruppen.length === 0) {
             setIsSchuelerListOpen(true);
         }
-    }, [nichtZugeordnet.length, gruppen.length]);
+    }, [nichtZugeordnet.length, currentGruppen.length]);
     
+    // Click outside handler for settings
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (
@@ -111,6 +125,13 @@ const GruppeneinteilungView: React.FC = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    // Focus input when editing starts
+    useEffect(() => {
+        if (editingGroupId && nameInputRef.current) {
+            nameInputRef.current.focus();
+        }
+    }, [editingGroupId]);
 
     const schuelerColumnWidth = useMemo(() => {
         const longestNameLength = Math.max(0, ...schuelerInSelectedLerngruppe.map((s: Schueler) => s.lastName.length + s.firstName.length + 2)); // +2 for ", "
@@ -132,8 +153,24 @@ const GruppeneinteilungView: React.FC = () => {
         return array;
     }
 
+    const saveGruppen = async (newGruppenStructure: Gruppe[]) => {
+        if (selectedLerngruppe) {
+            await onUpdateGruppenEinteilung(selectedLerngruppe.id, newGruppenStructure);
+        }
+    };
+
     const handleGenerate = useCallback(() => {
+        if (!selectedLerngruppe) return;
         const anzahlNum = parseInt(anzahl, 10) || 1;
+        
+        const createGroupStructure = (pool: Schueler[][]): Gruppe[] => {
+            return pool.map((groupStudents, index) => ({
+                id: uuidv4(),
+                name: `Gruppe ${index + 1}`,
+                schuelerIds: groupStudents.map(s => s.id)
+            }));
+        };
+
         const generateGroupsForPool = (pool: Schueler[], nach: EinteilungNach, num: number): Schueler[][] => {
             if (pool.length === 0 || num <= 0) return [];
             
@@ -149,41 +186,34 @@ const GruppeneinteilungView: React.FC = () => {
         };
         
         let schuelerPool = [...schuelerInSelectedLerngruppe];
+        let newGruppenArrays: Schueler[][] = [];
+
         if (kriterium === 'geschlechterTrennen') {
             const jungs = schuelerPool.filter(s => s.gender === 'm');
             const maedchen = schuelerPool.filter(s => s.gender === 'w' || s.gender === 'd');
             const jungsGruppen = generateGroupsForPool(jungs, einteilungNach, anzahlNum);
             const maedchenGruppen = generateGroupsForPool(maedchen, einteilungNach, anzahlNum);
-            setGruppen([...jungsGruppen, ...maedchenGruppen]);
-            setNichtZugeordnet([]);
-            generateButtonRef.current?.blur();
-            return;
-        }
-        
-        let shuffledSchueler: Schueler[] = [];
-        if (kriterium === 'geschlechtAusgleich') {
-            const maenner = shuffleArray(schuelerPool.filter(s => s.gender === 'm'));
-            const frauen = shuffleArray(schuelerPool.filter(s => s.gender === 'w' || s.gender === 'd'));
-            let mIndex = 0, fIndex = 0;
-            while(mIndex < maenner.length || fIndex < frauen.length) {
-                if(mIndex < maenner.length) shuffledSchueler.push(maenner[mIndex++]);
-                if(fIndex < frauen.length) shuffledSchueler.push(frauen[fIndex++]);
-            }
+            newGruppenArrays = [...jungsGruppen, ...maedchenGruppen];
         } else {
-             shuffledSchueler = shuffleArray(schuelerPool);
+            let shuffledSchueler: Schueler[] = [];
+            if (kriterium === 'geschlechtAusgleich') {
+                const maenner = shuffleArray(schuelerPool.filter(s => s.gender === 'm'));
+                const frauen = shuffleArray(schuelerPool.filter(s => s.gender === 'w' || s.gender === 'd'));
+                let mIndex = 0, fIndex = 0;
+                while(mIndex < maenner.length || fIndex < frauen.length) {
+                    if(mIndex < maenner.length) shuffledSchueler.push(maenner[mIndex++]);
+                    if(fIndex < frauen.length) shuffledSchueler.push(frauen[fIndex++]);
+                }
+            } else {
+                 shuffledSchueler = shuffleArray(schuelerPool);
+            }
+            newGruppenArrays = generateGroupsForPool(shuffledSchueler, einteilungNach, anzahlNum);
         }
 
-        let numGruppen = (einteilungNach === 'groupCount') ? Math.max(1, anzahlNum) : (anzahlNum > 0 ? Math.max(1, Math.round(shuffledSchueler.length / anzahlNum)) : 1);
-        numGruppen = Math.min(shuffledSchueler.length, numGruppen);
-
-        const newGruppen: Schueler[][] = Array.from({ length: numGruppen }, () => []);
-        shuffledSchueler.forEach((schueler, index) => {
-            newGruppen[index % numGruppen].push(schueler);
-        });
-        setGruppen(newGruppen);
-        setNichtZugeordnet([]);
+        const newGruppen = createGroupStructure(newGruppenArrays);
+        saveGruppen(newGruppen);
         generateButtonRef.current?.blur();
-    }, [anzahl, einteilungNach, kriterium, schuelerInSelectedLerngruppe]);
+    }, [anzahl, einteilungNach, kriterium, schuelerInSelectedLerngruppe, selectedLerngruppe]);
 
     const handleAiClick = () => {
         if (isSupporter) {
@@ -203,7 +233,7 @@ const GruppeneinteilungView: React.FC = () => {
         try {
             const anonymousStudentMap = new Map<string, string>();
             const reverseAnonymousMap = new Map<string, string>();
-            const schuelerMap = new Map(schuelerInSelectedLerngruppe.map(s => [s.id, s]));
+            // const schuelerMap = new Map(schuelerInSelectedLerngruppe.map(s => [s.id, s]));
 
             schuelerInSelectedLerngruppe.forEach((s, index) => {
                 const anonymousId = `s_${index}`;
@@ -251,18 +281,13 @@ const GruppeneinteilungView: React.FC = () => {
             const result = JSON.parse(jsonString);
 
             if (result.groups && Array.isArray(result.groups)) {
-                const newGruppen: Schueler[][] = result.groups.map((group: string[]) => 
-                    group.map((anonId: string) => {
-                        const realId = reverseAnonymousMap.get(anonId);
-                        return realId ? schuelerMap.get(realId) : null;
-                    }).filter((s): s is Schueler => s !== null)
-                );
+                const newGruppen: Gruppe[] = result.groups.map((group: string[], index: number) => ({
+                    id: uuidv4(),
+                    name: `Gruppe ${index + 1}`,
+                    schuelerIds: group.map((anonId: string) => reverseAnonymousMap.get(anonId)).filter(Boolean) as string[]
+                }));
                 
-                const placedStudents = new Set(newGruppen.flat().map(s => s.id));
-                const newNichtZugeordnet = schuelerInSelectedLerngruppe.filter(s => !placedStudents.has(s.id));
-                
-                setGruppen(newGruppen);
-                setNichtZugeordnet(newNichtZugeordnet);
+                saveGruppen(newGruppen);
                 setIsAiModalOpen(false);
             } else {
                 throw new Error("Ungültiges Antwortformat von der KI.");
@@ -276,46 +301,83 @@ const GruppeneinteilungView: React.FC = () => {
         }
     };
 
-    const handleReset = () => {
-        setGruppen([]);
-        setNichtZugeordnet([...schuelerInSelectedLerngruppe].sort((a,b) => a.lastName.localeCompare(b.lastName)));
+    const handleReset = async () => {
+        if(selectedLerngruppe) {
+            await onResetGruppenEinteilung(selectedLerngruppe.id);
+        }
     };
     
-    const handleAddNewGroup = () => {
-        setGruppen(prev => [...prev, []]);
+    const handleAddNewGroup = async () => {
+        const newGroup: Gruppe = { id: uuidv4(), name: `Gruppe ${currentGruppen.length + 1}`, schuelerIds: [] };
+        await saveGruppen([...currentGruppen, newGroup]);
     };
 
     const handleDrop = useCallback((
-        draggedItem: { schueler: Schueler; source: number | null },
-        targetIndex: number | null
+        draggedItem: { schueler: Schueler; source: string | null },
+        targetGroupId: string | null
     ) => {
-        if (targetIndex !== null && targetIndex !== draggedItem.source) {
-            const { schueler, source: sourceIndex } = draggedItem;
-            const newGruppen = [...gruppen];
-            let newNichtZugeordnet = [...nichtZugeordnet];
+        // source is null if from "nicht zugeordnet", otherwise it's a groupId string
+        if (targetGroupId !== draggedItem.source) {
+            const { schueler, source: sourceGroupId } = draggedItem;
+            let newGruppen = [...currentGruppen];
 
-            if (sourceIndex === null) {
-                newNichtZugeordnet = newNichtZugeordnet.filter(s => s.id !== schueler.id);
-            } else {
-                newGruppen[sourceIndex] = newGruppen[sourceIndex].filter(s => s.id !== schueler.id);
+            // 1. Remove from source
+            if (sourceGroupId) {
+                newGruppen = newGruppen.map(g => {
+                    if (g.id === sourceGroupId) {
+                        return { ...g, schuelerIds: g.schuelerIds.filter(id => id !== schueler.id) };
+                    }
+                    return g;
+                });
             }
 
-            if (targetIndex === -1) {
-                newNichtZugeordnet.push(schueler);
-                newNichtZugeordnet.sort((a,b) => a.lastName.localeCompare(b.lastName));
+            // 2. Add to target
+            if (targetGroupId) { // targetGroupId is a string (UUID) of the group
+                newGruppen = newGruppen.map(g => {
+                    if (g.id === targetGroupId) {
+                        return { ...g, schuelerIds: [...g.schuelerIds, schueler.id] };
+                    }
+                    return g;
+                });
             } else {
-                newGruppen[targetIndex].push(schueler);
+                // Dropped on "Nicht zugeordnet" (targetGroupId is null or -1 handled by dnd hook as null)
+                // Nothing to do, removal from source is enough, calculation does the rest.
             }
-            setGruppen(newGruppen);
-            setNichtZugeordnet(newNichtZugeordnet);
+            
+            saveGruppen(newGruppen);
         }
-    }, [gruppen, nichtZugeordnet, setGruppen, setNichtZugeordnet]);
+    }, [currentGruppen, saveGruppen]);
 
-    const { draggedItem, ghostPosition, startDrag, dropTargetRef } = useSchuelerDragAndDrop<number | null, number>({ onDrop: handleDrop });
+    const { draggedItem, ghostPosition, startDrag, dropTargetRef } = useSchuelerDragAndDrop<string | null, string>({ onDrop: handleDrop });
 
-    const handleTouchStart = (e: React.TouchEvent, schueler: Schueler, gruppeIndex: number | null) => {
+    const handleTouchStart = (e: React.TouchEvent, schueler: Schueler, groupId: string | null) => {
         e.preventDefault();
-        startDrag(e, schueler, gruppeIndex);
+        startDrag(e, schueler, groupId);
+    };
+
+    // Renaming Logic
+    const startRenaming = (groupId: string, currentName: string) => {
+        setEditingGroupId(groupId);
+        setEditingGroupName(currentName);
+    };
+
+    const saveRename = async () => {
+        if (editingGroupId) {
+            const trimmedName = editingGroupName.trim() || 'Gruppe';
+            const newGruppen = currentGruppen.map(g => 
+                g.id === editingGroupId ? { ...g, name: trimmedName } : g
+            );
+            await saveGruppen(newGruppen);
+            setEditingGroupId(null);
+        }
+    };
+
+    const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            saveRename();
+        } else if (e.key === 'Escape') {
+            setEditingGroupId(null);
+        }
     };
 
     const modeOptions: SegmentedControlOption<Mode>[] = [
@@ -379,7 +441,18 @@ const GruppeneinteilungView: React.FC = () => {
                             <span>Intelligente Einteilung</span>
                         </Button>
                     )}
-                    <Button onClick={handleReset} variant="secondary" disabled={gruppen.length === 0 && nichtZugeordnet.length === schuelerInSelectedLerngruppe.length}>Zurücksetzen</Button>
+                    {/* NEW: Batch Grading Button */}
+                    <Button 
+                        variant="primary" 
+                        onClick={() => setIsGradingModalOpen(true)} 
+                        disabled={currentGruppen.length === 0}
+                        className={currentGruppen.length > 0 ? "bg-gradient-to-br from-[var(--color-accent-secondary)] to-[var(--color-accent-primary)] border border-[var(--color-accent-border-focus)]" : ""}
+                    >
+                        <CalculatorIcon className="w-5 h-5" />
+                        <span className="ml-1">Bewerten</span>
+                    </Button>
+                    
+                    <Button onClick={handleReset} variant="secondary" disabled={currentGruppen.length === 0}>Zurücksetzen</Button>
                 </div>
             </div>
 
@@ -402,10 +475,10 @@ const GruppeneinteilungView: React.FC = () => {
                 style={{ width: isSchuelerListOpen ? `${schuelerColumnWidth}px` : '0px' }}
             >
                 <div 
-                    className={`h-full bg-[var(--color-ui-primary)] p-4 rounded-lg border ${draggedItem && dropTargetRef.current === -1 ? 'border-2 border-[var(--color-accent-border-focus)]' : 'border-[var(--color-border)]'} transition-all flex flex-col overflow-hidden`} 
-                    onMouseEnter={() => { if(draggedItem) dropTargetRef.current = -1; }} 
-                    onMouseLeave={() => { if(draggedItem) dropTargetRef.current = null; }}
-                    data-droptarget-json="-1"
+                    className={`h-full bg-[var(--color-ui-primary)] p-4 rounded-lg border ${draggedItem && dropTargetRef.current === null ? 'border-2 border-[var(--color-accent-border-focus)]' : 'border-[var(--color-border)]'} transition-all flex flex-col overflow-hidden`} 
+                    onMouseEnter={() => { if(draggedItem) dropTargetRef.current = null; }} // null indicates "nicht zugeordnet" list
+                    onMouseLeave={() => { if(draggedItem) dropTargetRef.current = undefined; }} // undefined indicates invalid drop area
+                    data-droptarget-json="null"
                 >
                     <h2 className="text-lg font-bold text-[var(--color-accent-text)] mb-3 flex-shrink-0">Nicht zugeordnet ({nichtZugeordnet.length})</h2>
                     <div className="flex-1 overflow-y-auto -mr-2 pr-2 space-y-2">
@@ -427,32 +500,54 @@ const GruppeneinteilungView: React.FC = () => {
             {/* Groups Area */}
             <div className="flex-1 overflow-y-auto pr-2 -mr-2">
                 <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 content-start`}>
-                    {gruppen.map((gruppe, index) => (
+                    {currentGruppen.map((gruppe, index) => {
+                        const schuelerInGruppe = allSchueler.filter(s => gruppe.schuelerIds.includes(s.id));
+                        return (
                          <div 
-                            key={index} 
-                            className={`bg-[var(--color-ui-primary)] p-3 rounded-lg border ${draggedItem && dropTargetRef.current === index ? 'border-[var(--color-accent-border-focus)] shadow-lg shadow-[var(--color-shadow)]' : 'border-[var(--color-border)]'} transition-all flex flex-col min-h-[120px]`} 
-                            onMouseEnter={() => { if(draggedItem) dropTargetRef.current = index; }} 
-                            onMouseLeave={() => { if(draggedItem) dropTargetRef.current = null; }}
-                            data-droptarget-json={index}
+                            key={gruppe.id} 
+                            className={`bg-[var(--color-ui-primary)] p-3 rounded-lg border ${draggedItem && dropTargetRef.current === gruppe.id ? 'border-[var(--color-accent-border-focus)] shadow-lg shadow-[var(--color-shadow)]' : 'border-[var(--color-border)]'} transition-all flex flex-col min-h-[120px]`} 
+                            onMouseEnter={() => { if(draggedItem) dropTargetRef.current = gruppe.id; }} 
+                            onMouseLeave={() => { if(draggedItem) dropTargetRef.current = undefined; }}
+                            data-droptarget-json={JSON.stringify(gruppe.id)}
                          >
-                            <h2 className="text-lg font-bold text-[var(--color-accent-text)] mb-2">Gruppe {index + 1} ({gruppe.length})</h2>
+                            <div className="mb-2 h-8 flex items-center justify-center">
+                                {editingGroupId === gruppe.id ? (
+                                    <input
+                                        ref={nameInputRef}
+                                        type="text"
+                                        value={editingGroupName}
+                                        onChange={(e) => setEditingGroupName(e.target.value)}
+                                        onBlur={saveRename}
+                                        onKeyDown={handleRenameKeyDown}
+                                        className="w-full bg-[var(--color-ui-secondary)] text-[var(--color-text-primary)] font-bold px-2 py-1 rounded border border-[var(--color-accent-border-focus)] focus:outline-none text-center"
+                                    />
+                                ) : (
+                                    <button 
+                                        onClick={() => startRenaming(gruppe.id, gruppe.name)}
+                                        className="w-full font-bold text-[var(--color-accent-text)] hover:bg-[var(--color-ui-secondary)] px-2 py-1 rounded truncate flex justify-center items-center gap-2 group"
+                                    >
+                                        <span className="truncate">{gruppe.name} ({gruppe.schuelerIds.length})</span>
+                                        <PencilIcon className="w-3 h-3 text-[var(--color-text-tertiary)] flex-shrink-0" />
+                                    </button>
+                                )}
+                            </div>
                             <div className="flex flex-col space-y-2 flex-grow content-start">
-                                {gruppe.map(s => (
+                                {schuelerInGruppe.map(s => (
                                      <div key={s.id} className={`w-full transition-opacity duration-200 ${draggedItem?.schueler.id === s.id ? 'opacity-30' : 'opacity-100'}`}>
                                         <SchuelerDndCard 
                                             schueler={s} 
                                             displayFormat="group" 
-                                            allSchuelerInGroup={gruppe}
-                                            onMouseDown={(e) => startDrag(e, s, index)}
-                                            onTouchStart={(e) => handleTouchStart(e, s, index)}
+                                            allSchuelerInGroup={schuelerInGruppe}
+                                            onMouseDown={(e) => startDrag(e, s, gruppe.id)}
+                                            onTouchStart={(e) => handleTouchStart(e, s, gruppe.id)}
                                         />
                                     </div>
                                 ))}
-                                {gruppe.length === 0 && <div className="text-center text-[var(--color-text-tertiary)] p-4 border-2 border-dashed border-[var(--color-border)] rounded-md w-full flex-1 flex items-center justify-center">Gruppe ist leer</div>}
+                                {schuelerInGruppe.length === 0 && <div className="text-center text-[var(--color-text-tertiary)] p-4 border-2 border-dashed border-[var(--color-border)] rounded-md w-full flex-1 flex items-center justify-center">Gruppe ist leer</div>}
                             </div>
                         </div>
-                    ))}
-                     {gruppen.length === 0 && (
+                    )})}
+                     {currentGruppen.length === 0 && (
                         <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4 2xl:col-span-5 text-center p-12 bg-[var(--color-ui-primary)] rounded-lg border-2 border-dashed border-[var(--color-border)] max-w-lg mx-auto">
                             <h3 className="text-xl font-semibold text-[var(--color-text-secondary)]">Noch keine Gruppen erstellt.</h3>
                             <p className="text-[var(--color-text-tertiary)] mt-2">Nutzen Sie die Steuerung, um Gruppen zu erstellen.</p>
@@ -474,6 +569,10 @@ const GruppeneinteilungView: React.FC = () => {
         <SupporterModal
             isOpen={isSupporterModalOpen}
             onClose={() => setIsSupporterModalOpen(false)}
+        />
+        <GroupGradingModal
+            isOpen={isGradingModalOpen}
+            onClose={() => setIsGradingModalOpen(false)}
         />
       </div>
     );

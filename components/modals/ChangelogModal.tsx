@@ -1,48 +1,23 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { SparklesIcon } from '../icons';
+import { useUIContext } from '../../context/UIContext';
 
 interface ChangelogModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-interface Version {
-    version: string;
-    date: string;
-    changes: string[];
-}
-
 const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
-    const [changelog, setChangelog] = useState<{ versions: Version[] } | null>(null);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (isOpen) {
-            // Fetch directly from root without cache buster
-            fetch('/changelog.json')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Changelog konnte nicht geladen werden.');
-                    }
-                    return response.json();
-                })
-                .then(data => setChangelog(data))
-                .catch(err => setError(err.message));
-        }
-    }, [isOpen]);
+    const { changelogData } = useUIContext();
 
     const renderContent = () => {
-        if (error) {
-            return <p className="text-[var(--color-danger-text)]">{error}</p>;
-        }
-        if (!changelog) {
+        if (!changelogData) {
             return <p className="text-[var(--color-text-secondary)]">Lade Änderungen...</p>;
         }
         
-        const latestVersion = changelog.versions[0];
+        const latestVersion = changelogData.versions[0];
         if (!latestVersion) {
             return <p className="text-[var(--color-text-secondary)]">Keine Versionsinformationen gefunden.</p>
         }
@@ -75,7 +50,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
                 {/* Older Versions */}
                 <div className="space-y-4">
                     <h4 className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-wide border-b border-[var(--color-border)] pb-2">Frühere Updates</h4>
-                    {changelog.versions.slice(1).map((version) => (
+                    {changelogData.versions.slice(1).map((version) => (
                         <div key={version.version} className="pl-2">
                             <div className="flex justify-between items-baseline mb-1">
                                 <span className="font-semibold text-[var(--color-text-secondary)]">v{version.version}</span>
@@ -99,7 +74,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
         <Modal isOpen={isOpen} onClose={onClose} title="Update-Infos" size="lg">
             {renderContent()}
             <div className="flex justify-end pt-6">
-                <Button onClick={onClose} className="w-full sm:w-auto">Cool, verstanden!</Button>
+                <Button onClick={onClose} className="w-full sm:w-auto">Verstanden!</Button>
             </div>
         </Modal>
     );

@@ -1,6 +1,6 @@
-
 import React, { createContext, useState, useCallback, ReactNode, useContext, useEffect, useRef } from 'react';
 import { useLocalStorage, getSystemSchoolYear, calculateNextSchoolYear } from './utils';
+import { ChangelogData } from './types';
 
 export type View = 'dashboard' | 'lerngruppen' | 'lerngruppeDetail' | 'schuelerAkte' | 'einstellungen' | 'tools-chooser' | 'notenverwaltung-chooser' | 'notenverwaltung' | 'leistungsnachweisDetail' | 'checklisten' | 'zufallsschueler' | 'gruppeneinteilung' | 'sitzplan' | 'notizen' | 'klausurAuswertung' | 'schuelerAuswertung' | 'sammelnoteAuswertung' | 'namenstraining';
 export type Theme = 'dark' | 'terranova' | 'solaris' | 'sepia' | 'amethyst' | 'scribe' | 'gold';
@@ -58,6 +58,7 @@ interface UIContextState {
   isChangelogModalOpen: boolean;
   showChangelog: () => void;
   hideChangelog: () => void;
+  changelogData: ChangelogData | null;
 }
 
 // FIX: Export UIContext to allow its use in test files for providing mock values.
@@ -105,6 +106,7 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
   const [isChangelogModalOpen, setChangelogModalOpen] = useState(false);
+  const [changelogData, setChangelogData] = useState<ChangelogData | null>(null);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
   const showChangelog = useCallback(() => setChangelogModalOpen(true), []);
@@ -151,13 +153,15 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
   }, [updateRegistration]);
   
   useEffect(() => {
-    // Attempt to load from /public/changelog.json based on user request to fix iOS issues
-    fetch('/public/changelog.json')
+    // Attempt to load from changelog.json relative to root
+    // Using simple fetch without leading slash to be relative to index.html location
+    fetch('changelog.json')
         .then(res => {
             if (!res.ok) throw new Error('Changelog konnte nicht geladen werden.');
             return res.json();
         })
-        .then(data => {
+        .then((data: ChangelogData) => {
+            setChangelogData(data);
             if (data?.versions?.[0]?.version) {
                 const latestVersion = data.versions[0].version;
                 setAppVersion(latestVersion);
@@ -175,7 +179,10 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
                 setAppVersion('Unbekannt');
             }
         })
-        .catch(() => setAppVersion('Fehler'));
+        .catch((err) => {
+            console.error(err);
+            setAppVersion('Fehler');
+        });
   }, [lastSeenVersion]); // Run when lastSeenVersion is loaded (initial)
 
   // When an update is detected, set the flag. 
@@ -203,7 +210,7 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
                       const installingWorker = reg.installing;
                       if (installingWorker) {
                           installingWorker.onstatechange = () => {
-                              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                              if (installingWorker.state === 'installed' && !!reg.active) {
                                   console.log('New content is available for update (detected via onstatechange).');
                                   setUpdateRegistration(reg);
                               }
@@ -352,6 +359,7 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
     isChangelogModalOpen,
     showChangelog,
     hideChangelog,
+    changelogData
   };
 
   return <UIContext.Provider value={value}>{children}</UIContext.Provider>;

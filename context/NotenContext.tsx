@@ -2,7 +2,7 @@ import React, { createContext, useCallback, ReactNode, useContext, useEffect, us
 import {
     Notenkategorie, Leistungsnachweis, EinzelLeistung, EinzelLeistungsNote,
     KlausuraufgabePunkte, NotenschluesselMap,
-    Klausuraufgabe, DEFAULT_NOTENSCHLUESSEL_MAP, NotenKategorieTyp, Lerngruppe, PREDEFINED_NOTENSYSTEME, Notensystem, NoteMapEntry, ColumnDef, ManuelleNote, ManuelleNoteZiel, SchuelerLeistungsnachweisFeedback
+    Klausuraufgabe, DEFAULT_NOTENSCHLUESSEL_MAP, NotenKategorieTyp, Lerngruppe, Schueler, PREDEFINED_NOTENSYSTEME, Notensystem, NoteMapEntry, ColumnDef, ManuelleNote, ManuelleNoteZiel, SchuelerLeistungsnachweisFeedback
 } from './types';
 import { useLerngruppenContext } from './LerngruppenContext';
 import { notenStore } from '../store/notenStore';
@@ -21,10 +21,11 @@ interface NotenContextState {
     handleAddLeistungsnachweis: (data: { bezeichnung: string; gewichtung: number; typ: 'sammelnote' | 'klausur'; inhalt?: string; context: { lerngruppeId: string; halbjahr: 1 | 2; typ: NotenKategorieTyp; }; }) => Promise<void>;
     handleUpdateLeistungsnachweis: (updatedLeistungsnachweis: Leistungsnachweis) => Promise<void>;
     handleDeleteLeistungsnachweis: (id: string) => Promise<void>;
-    handleAddEinzelLeistung: (leistungsnachweisId: string, name: string, gewichtung: number) => Promise<void>;
+    handleAddEinzelLeistung: (leistungsnachweisId: string, name: string, gewichtung: number) => Promise<EinzelLeistung | undefined>;
     handleUpdateEinzelLeistung: (updatedLeistung: EinzelLeistung) => Promise<void>;
     handleDeleteEinzelLeistung: (id: string) => Promise<void>;
     handleNumpadSave: (schuelerId: string, einzelLeistungId: string, note: string, bemerkung?: string) => Promise<void>;
+    saveBulkEinzelLeistungsNoten: (entries: { schuelerId: string; note: string }[], einzelLeistungId: string) => Promise<void>; // NEW action
     handleAddKlausuraufgabe: (leistungsnachweisId: string, name: string, maxPunkte: number, inhalt?: string) => Promise<void>;
     handleUpdateKlausuraufgabe: (leistungsnachweisId: string, aufgabe: Klausuraufgabe) => Promise<void>;
     handleDeleteKlausuraufgabe: (leistungsnachweisId: string, aufgabeId: string) => Promise<void>;
@@ -126,7 +127,7 @@ export const NotenContextProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     const handleAddEinzelLeistung = useCallback(async (leistungsnachweisId: string, name: string, gewichtung: number) => {
         if (selectedLerngruppe) {
-            await notenStore.actions.addEinzelLeistung(leistungsnachweisId, name, gewichtung, selectedLerngruppe, schuelerInSelectedLerngruppe);
+            return await notenStore.actions.addEinzelLeistung(leistungsnachweisId, name, gewichtung, selectedLerngruppe, schuelerInSelectedLerngruppe);
         }
     }, [selectedLerngruppe, schuelerInSelectedLerngruppe]);
 
@@ -145,6 +146,12 @@ export const NotenContextProvider: React.FC<{ children: ReactNode }> = ({ childr
     const handleNumpadSave = useCallback(async (schuelerId: string, einzelLeistungId: string, note: string, bemerkung?: string) => {
         if (selectedLerngruppe) {
             await notenStore.actions.saveEinzelLeistungsNote(schuelerId, einzelLeistungId, note, bemerkung, selectedLerngruppe, schuelerInSelectedLerngruppe);
+        }
+    }, [selectedLerngruppe, schuelerInSelectedLerngruppe]);
+
+    const saveBulkEinzelLeistungsNoten = useCallback(async (entries: { schuelerId: string; note: string }[], einzelLeistungId: string) => {
+        if (selectedLerngruppe) {
+            await notenStore.actions.saveBulkEinzelLeistungsNoten(entries, einzelLeistungId, selectedLerngruppe, schuelerInSelectedLerngruppe);
         }
     }, [selectedLerngruppe, schuelerInSelectedLerngruppe]);
     
@@ -204,6 +211,7 @@ export const NotenContextProvider: React.FC<{ children: ReactNode }> = ({ childr
         handleUpdateEinzelLeistung,
         handleDeleteEinzelLeistung,
         handleNumpadSave,
+        saveBulkEinzelLeistungsNoten,
         handleAddKlausuraufgabe,
         handleUpdateKlausuraufgabe,
         handleDeleteKlausuraufgabe,

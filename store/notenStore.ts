@@ -407,12 +407,13 @@ const deleteLeistungsnachweis = async (id: string, lerngruppe: Lerngruppe, schue
     _triggerGlobalRecalculation(lerngruppe, schuelerInLerngruppe);
 };
 
-const addEinzelLeistung = async (leistungsnachweisId: string, name: string, gewichtung: number, lerngruppe: Lerngruppe, schuelerInLerngruppe: Schueler[]) => {
+const addEinzelLeistung = async (leistungsnachweisId: string, name: string, gewichtung: number, lerngruppe: Lerngruppe, schuelerInLerngruppe: Schueler[]): Promise<EinzelLeistung> => {
     const order = state.einzelLeistungen.filter(el => el.leistungsnachweisId === leistungsnachweisId).length;
     const newEinzelLeistung: EinzelLeistung = { id: uuidv4(), leistungsnachweisId, name, gewichtung, order };
     state = { ...state, einzelLeistungen: [...state.einzelLeistungen, newEinzelLeistung] };
     await persistState();
     _triggerGlobalRecalculation(lerngruppe, schuelerInLerngruppe);
+    return newEinzelLeistung;
 };
 
 const updateEinzelLeistung = async (updated: EinzelLeistung, lerngruppe: Lerngruppe, schuelerInLerngruppe: Schueler[]) => {
@@ -444,6 +445,33 @@ const saveEinzelLeistungsNote = async (schuelerId: string, einzelLeistungId: str
     await persistState();
     _triggerTargetedRecalculation(schuelerId, lerngruppe, schuelerInLerngruppe);
 };
+
+// --- NEW ACTION: Bulk Save ---
+const saveBulkEinzelLeistungsNoten = async (entries: { schuelerId: string; note: string }[], einzelLeistungId: string, lerngruppe: Lerngruppe, schuelerInLerngruppe: Schueler[]) => {
+    let newNoten = [...state.einzelLeistungsNoten];
+    
+    entries.forEach(({ schuelerId, note }) => {
+        const index = newNoten.findIndex(n => n.schuelerId === schuelerId && n.einzelLeistungId === einzelLeistungId);
+        if (note) {
+            if (index > -1) {
+                newNoten[index] = { ...newNoten[index], note }; // Keep existing bemerkung
+            } else {
+                newNoten.push({ id: uuidv4(), schuelerId, einzelLeistungId, note });
+            }
+        } else {
+            // Usually bulk updates are for setting grades, but if note is empty we remove it
+            if (index > -1) {
+                newNoten = newNoten.filter((_, i) => i !== index);
+            }
+        }
+    });
+
+    state = { ...state, einzelLeistungsNoten: newNoten };
+    await persistState();
+    // For bulk updates, it's safer to trigger a global recalculation for the group to ensure all stats are updated
+    _triggerGlobalRecalculation(lerngruppe, schuelerInLerngruppe);
+};
+
 
 const addKlausuraufgabe = async (leistungsnachweisId: string, name: string, maxPunkte: number, lerngruppe: Lerngruppe, schuelerInLerngruppe: Schueler[], inhalt?: string) => {
     const updatedLeistungsnachweise = state.leistungsnachweise.map(ln => {
@@ -702,6 +730,7 @@ export const notenStore = {
     updateEinzelLeistung,
     deleteEinzelLeistung,
     saveEinzelLeistungsNote,
+    saveBulkEinzelLeistungsNoten, // NEW action
     addKlausuraufgabe,
     updateKlausuraufgabe,
     deleteKlausuraufgabe,

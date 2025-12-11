@@ -8,6 +8,9 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    // Ensure we always have a string for the API key to prevent SDK crashes in browser
+    const apiKey = env.GEMINI_API_KEY || 'MISSING_API_KEY_PLACEHOLDER';
+    
     return {
       base: './',
       server: {
@@ -25,8 +28,8 @@ export default defineConfig(({ mode }) => {
         }
       ],
       define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+        'process.env.API_KEY': JSON.stringify(apiKey),
+        'process.env.GEMINI_API_KEY': JSON.stringify(apiKey)
       },
       resolve: {
         alias: {
