@@ -20,22 +20,29 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Linexio">
 
-    <!-- iOS Splash Screens (iPad Only) -->
-    <!-- Optimiert: Trennung bei 800px Breite fängt iPad Air (820px) sicher ab. -->
+    <!-- iOS Splash Screens (iPad Only) - Optimized for 2025 -->
     
-    <!-- 1. High-Res Tablets (iPad Pro 12.9", iPad Air, iPad 10. Gen, iPad Pro 11") -->
-    <!-- Alles ab 800px logischer Breite -->
-    <!-- Portrait -->
-    <link rel="apple-touch-startup-image" href="splash/ios-splash-2048x2732.png?v=1" media="(min-device-width: 800px) and (orientation: portrait) and (-webkit-min-device-pixel-ratio: 2)">
-    <!-- Landscape -->
-    <link rel="apple-touch-startup-image" href="splash/ios-splash-2732x2048.png?v=1" media="(min-device-width: 800px) and (orientation: landscape) and (-webkit-min-device-pixel-ratio: 2)">
-
-    <!-- 2. Standard Tablets (iPad 9.7", 10.2", Mini) -->
-    <!-- Alles unter 800px logischer Breite -->
-    <!-- Portrait -->
-    <link rel="apple-touch-startup-image" href="splash/ios-splash-1536x2048.png?v=1" media="(max-device-width: 799px) and (orientation: portrait) and (-webkit-min-device-pixel-ratio: 2)">
-    <!-- Landscape (Nutzt das große Landscape Bild, skaliert) -->
-    <link rel="apple-touch-startup-image" href="splash/ios-splash-2732x2048.png?v=1" media="(max-device-width: 799px) and (orientation: landscape) and (-webkit-min-device-pixel-ratio: 2)">
+    <!-- 1. iPad Pro 12.9" (Generation 3+) -->
+    <!-- Portrait (2048x2732) -->
+    <link rel="apple-touch-startup-image" href="splash/ios-splash-2048x2732.png?v=3" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <!-- Landscape (2732x2048) - EXAKT exportiertes Bild gegen Stauchung -->
+    <link rel="apple-touch-startup-image" href="splash/ios-splash-2732x2048.png?v=3" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    
+    <!-- 2. iPad Air (Gen 4/5) & iPad (Gen 10) - Das "kleine" iPad -->
+    <!-- Portrait (1640x2360) -->
+    <link rel="apple-touch-startup-image" href="splash/ios-splash-1640x2360.png?v=3" media="(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <!-- Landscape (2360x1640) -->
+    <link rel="apple-touch-startup-image" href="splash/ios-splash-2360x1640.png?v=3" media="(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    
+    <!-- 3. iPad Pro 11" -->
+    <!-- Portrait (1668x2388) - Falls vorhanden, sonst Fallback -->
+    <link rel="apple-touch-startup-image" href="splash/ios-splash-2048x2732.png?v=3" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <!-- Landscape (2388x1668) -->
+    <link rel="apple-touch-startup-image" href="splash/ios-splash-2732x2048.png?v=3" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+    
+    <!-- 4. iPad 10.2" (Gen 7/8/9) & iPad Mini -->
+    <link rel="apple-touch-startup-image" href="splash/ios-splash-1536x2048.png?v=3" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="splash/ios-splash-2048x1536.png?v=3" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
 
     <meta name="theme-color" content="#1f2937" />
     <style>
@@ -535,5 +542,9 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
-</body>
+    
+    <!-- Cloudflare Web Analytics -->
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "cb584e6858724aeba526f470b339c168"}'></script>
+    <!-- End Cloudflare Web Analytics -->
+  </body>
 </html>

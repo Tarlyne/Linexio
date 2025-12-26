@@ -1,9 +1,9 @@
 // public/service-worker.js
 
-// Force Update: 2025-12-06T18:00:00
+// Force Update: 2025-12-11T12:00:00 (Manual Cache Buster)
 // Jede neue Version der App benötigt einen neuen Cache-Namen.
 // Das Ändern dieser Versionsnummer löst den Update-Prozess im Browser aus.
-const CACHE_NAME = 'linexio-v43';
+const CACHE_NAME = 'linexio-v46';
 const urlsToCache = [
   './',
   'index.html',
@@ -11,11 +11,14 @@ const urlsToCache = [
   'logo192.png',
   'logo512.png',
   'apple-touch-icon.png',
-  'changelog.json', // Changelog wird für Offline-Ansicht gecached
+  // 'changelog.json', // ENTFERNT: Changelog ist jetzt fest im Code (data/changelog.ts)
   'favicon.png',
-  'splash/ios-splash-1536x2048.png', // Standard iPad Portrait
-  'splash/ios-splash-2048x2732.png', // iPad Pro / Air / High-Res Portrait
-  'splash/ios-splash-2732x2048.png', // iPad Pro / Air / High-Res Landscape
+  'splash/ios-splash-2048x2732.png', // iPad Pro 12.9 Portrait
+  'splash/ios-splash-2732x2048.png', // iPad Pro 12.9 Landscape
+  'splash/ios-splash-1640x2360.png', // iPad Air Portrait
+  'splash/ios-splash-2360x1640.png', // iPad Air Landscape
+  'splash/ios-splash-1536x2048.png', // iPad 10.2 Portrait
+  'splash/ios-splash-2048x1536.png', // iPad 10.2 Landscape
 ];
 
 // 1. Installations-Event: Der neue Service Worker wird installiert

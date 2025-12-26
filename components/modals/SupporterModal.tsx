@@ -35,11 +35,10 @@ const SupporterModal: React.FC<SupporterModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         <div className="bg-[var(--color-ui-secondary)] p-4 rounded-lg text-left border border-[var(--color-border)]">
-            <p className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">Als Supporter erhältst du:</p>
+            <p className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">Als Supporter erhalten Sie:</p>
             <ul className="text-sm text-[var(--color-text-secondary)] space-y-1 list-disc list-inside">
                 <li>Zugriff auf <strong>alle KI-Tools</strong> (Sitzplan, Gruppen, Feedback)</li>
                 <li>Das exklusive <strong>Golden Hour Theme</strong></li>
-                <li>Ein <strong>Kronen-Icon</strong> 👑 im Dashboard</li>
                 <li>Unser unendliches Dankeschön! ❤️</li>
             </ul>
         </div>

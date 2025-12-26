@@ -1,6 +1,7 @@
 import React, { createContext, useState, useCallback, ReactNode, useContext, useEffect, useRef } from 'react';
 import { useLocalStorage, getSystemSchoolYear, calculateNextSchoolYear } from './utils';
 import { ChangelogData } from './types';
+import { CHANGELOG } from '../data/changelog';
 
 export type View = 'dashboard' | 'lerngruppen' | 'lerngruppeDetail' | 'schuelerAkte' | 'einstellungen' | 'tools-chooser' | 'notenverwaltung-chooser' | 'notenverwaltung' | 'leistungsnachweisDetail' | 'checklisten' | 'zufallsschueler' | 'gruppeneinteilung' | 'sitzplan' | 'notizen' | 'klausurAuswertung' | 'schuelerAuswertung' | 'sammelnoteAuswertung' | 'namenstraining';
 export type Theme = 'dark' | 'terranova' | 'solaris' | 'sepia' | 'amethyst' | 'scribe' | 'gold';
@@ -119,78 +120,62 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
       }
   }, [appVersion, setLastSeenVersion]);
 
-  // --- Robust Update Checking Logic ---
+  // --- Aggressive Update Wächter ---
   
-  // This function performs a manual check against the server
+  // Diese Funktion prüft aktiv auf Updates, anstatt nur auf Browser-Events zu warten.
   const checkForUpdates = useCallback(async () => {
       const reg = registrationRef.current;
       if (!reg) return;
       
-      // If we already found an update, no need to keep checking until user refreshes
-      if (updateRegistration) return; 
+      // Wenn bereits ein Update bereitsteht, müssen wir nicht mehr suchen.
+      if (updateRegistration && isUpdateAvailable) return;
 
       try {
-          // Force the browser to check for a new service worker file
+          // Zwingt den Browser, die SW-Datei neu vom Server zu laden und Byte-für-Byte zu vergleichen.
           await reg.update();
           
-          // Explicitly check if a waiting worker exists after the update check
+          // Nach dem Check prüfen: Wartet jemand?
           if (reg.waiting) {
-              console.log('Update found (waiting state detected via manual check).');
+              console.log('Update Wächter: Wartender Service Worker gefunden.');
               setUpdateRegistration(reg);
+              setIsUpdateAvailable(true);
           }
       } catch (err) {
-          // This is expected offline, so we use debug level to keep console clean
-          console.debug('Manual update check failed (likely offline):', err);
+          // Dies ist offline völlig normal.
+          console.debug('Update Wächter: Check fehlgeschlagen (wahrscheinlich offline).', err);
       }
-  }, [updateRegistration]);
+  }, [updateRegistration, isUpdateAvailable]);
 
   const triggerUpdate = useCallback(() => {
     if (updateRegistration && updateRegistration.waiting) {
       updateRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
       // Reset state immediately for better UX
       setIsUpdateAvailable(false);
+    } else {
+        // Fallback: Manchmal ist waiting null, obwohl ein Update da ist. Reload erzwingen.
+        window.location.reload();
     }
   }, [updateRegistration]);
   
+  // CHANGELOG LOADING LOGIC
   useEffect(() => {
-    // Attempt to load from changelog.json relative to root
-    // Using simple fetch without leading slash to be relative to index.html location
-    fetch('changelog.json')
-        .then(res => {
-            if (!res.ok) throw new Error('Changelog konnte nicht geladen werden.');
-            return res.json();
-        })
-        .then((data: ChangelogData) => {
-            setChangelogData(data);
-            if (data?.versions?.[0]?.version) {
-                const latestVersion = data.versions[0].version;
-                setAppVersion(latestVersion);
-                
-                // FEATURE: Auto-Show Changelog if version changed
-                // We compare the fetched latest version with the locally stored 'lastSeenVersion'.
-                // If they differ, we open the modal.
-                // We use a small timeout to ensure the app is fully rendered before showing the modal.
-                if (latestVersion !== lastSeenVersion) {
-                    setTimeout(() => {
-                        setChangelogModalOpen(true);
-                    }, 1000);
-                }
-            } else {
-                setAppVersion('Unbekannt');
-            }
-        })
-        .catch((err) => {
-            console.error(err);
-            setAppVersion('Fehler');
-        });
-  }, [lastSeenVersion]); // Run when lastSeenVersion is loaded (initial)
-
-  // When an update is detected, set the flag. 
-  useEffect(() => {
-    if (updateRegistration) {
-      setIsUpdateAvailable(true);
+    setChangelogData(CHANGELOG);
+    
+    if (CHANGELOG?.versions?.[0]?.version) {
+        const latestVersion = CHANGELOG.versions[0].version;
+        setAppVersion(latestVersion);
+        
+        // FEATURE: Auto-Show Changelog if version changed
+        if (latestVersion !== lastSeenVersion) {
+            setTimeout(() => {
+                setChangelogModalOpen(true);
+            }, 1000);
+        }
+    } else {
+        setAppVersion('Unbekannt');
     }
-  }, [updateRegistration]);
+  }, [lastSeenVersion]);
+
 
   useEffect(() => {
       const registerServiceWorker = async () => {
@@ -201,8 +186,9 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
 
                   // Initial check: is there already a waiting worker?
                   if (reg.waiting) {
-                      console.log('Update found (waiting state detected on load).');
+                      console.log('SW Setup: Wartender Worker beim Start gefunden.');
                       setUpdateRegistration(reg);
+                      setIsUpdateAvailable(true);
                   }
 
                   // Standard listener for updates arriving while app is open
@@ -210,15 +196,16 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
                       const installingWorker = reg.installing;
                       if (installingWorker) {
                           installingWorker.onstatechange = () => {
-                              if (installingWorker.state === 'installed' && !!reg.active) {
-                                  console.log('New content is available for update (detected via onstatechange).');
+                              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                  console.log('SW Setup: Neuer Inhalt verfügbar (onstatechange).');
                                   setUpdateRegistration(reg);
+                                  setIsUpdateAvailable(true);
                               }
                           };
                       }
                   };
                   
-                  // Perform an initial manual check shortly after load
+                  // Initialen manuellen Check durchführen (nach kurzer Verzögerung, um Netzwerk nicht beim Boot zu blockieren)
                   setTimeout(checkForUpdates, 3000);
 
               } catch (error) {
@@ -242,9 +229,9 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
       };
   }, [checkForUpdates]);
 
-  // Periodic and Event-based Checks
+  // Aggressive Checks: Visibility Change & Interval & Navigation
   useEffect(() => {
-      // 1. Check when app becomes visible (e.g. switching back from another app)
+      // 1. Check wenn App wieder in den Vordergrund kommt
       const handleVisibilityChange = () => {
           if (document.visibilityState === 'visible') {
               checkForUpdates();
@@ -253,19 +240,18 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
       
       document.addEventListener('visibilitychange', handleVisibilityChange);
       
-      // 2. Check periodically (every 60 minutes)
+      // 2. Check periodisch (alle 60 Minuten)
       const intervalId = setInterval(checkForUpdates, 60 * 60 * 1000);
+
+      // 3. Sofortiger Check bei View-Wechsel (Navigation)
+      // Dies stellt sicher, dass Nutzer, die die App intensiv nutzen, auch Updates erhalten
+      checkForUpdates();
 
       return () => {
           document.removeEventListener('visibilitychange', handleVisibilityChange);
           clearInterval(intervalId);
       };
-  }, [checkForUpdates]);
-
-  // 3. Check on navigation (Aggressive mode)
-  useEffect(() => {
-      checkForUpdates();
-  }, [activeView, checkForUpdates]);
+  }, [checkForUpdates, activeView]); // Trigger on activeView change too
 
   // --- End of Update Logic ---
 
