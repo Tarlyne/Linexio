@@ -394,23 +394,33 @@ export const generateSchuelerBerichtePDF = async (props: GeneratePDFProps) => {
     const reportWidth = pageWidth - 2 * pageMargin;
     
     // Logic for Single vs Combined Report
-    const reportsPerPage = secondaryReportData ? 1 : 2;
+    // ARCHITEKTONISCHES MEMORANDUM: Platzberechnung für kombinierte Berichte
+    // Problem: Wenn secondaryReportData vorhanden ist, müssen zwei Berichte auf eine Seite (Top/Bottom).
+    // Der Code berechnete zuvor das 'spacing' basierend auf reportsPerPage = 1, was dazu führte,
+    // dass der zweite Bericht rechnerisch außerhalb der Seite platziert wurde.
+    // Lösung: Wir verwenden 'blocksOnPage = 2' für die Höhenberechnung, unabhängig davon, 
+    // ob ein Schüler (kombiniert) oder zwei Schüler (standard) pro Seite gedruckt werden.
+    const studentsPerPage = secondaryReportData ? 1 : 2;
+    const blocksOnPage = 2; 
     const reportHeight = reportWidth * (420 / 550); // Original aspect ratio kept
     
-    // Spacing calculation
-    const totalContentHeight = (reportsPerPage * reportHeight);
-    const spacing = (pageHeight - totalContentHeight) / (reportsPerPage + 1);
+    // Spacing calculation - always assuming 2 blocks fit on A4
+    const totalContentHeight = (blocksOnPage * reportHeight);
+    const spacing = (pageHeight - totalContentHeight) / (blocksOnPage + 1);
     
-    let yPos = spacing;
     let schuelerCount = 0;
-
     const isKlausur = leistungsnachweis.typ === 'klausur';
 
     for (const schueler of teilnehmendeSchueler) {
-        if (schuelerCount > 0 && schuelerCount % reportsPerPage === 0) {
+        if (schuelerCount > 0 && schuelerCount % studentsPerPage === 0) {
             pdf.addPage();
-            yPos = spacing;
         }
+
+        // Determine Y Position for the primary report
+        // In combined mode, it's always the top slot.
+        // In standard mode, it alternates between top and bottom slot.
+        const isSecondOnPage = !secondaryReportData && (schuelerCount % 2 === 1);
+        const yPos = isSecondOnPage ? (spacing * 2 + reportHeight) : spacing;
 
         // --- PRIMARY REPORT DATA PREPARATION ---
         const noteData = schuelerKlausurNotenMap.get(schueler.id);
@@ -463,14 +473,10 @@ export const generateSchuelerBerichtePDF = async (props: GeneratePDFProps) => {
         if (secondaryReportData) {
             const secNoteData = secondaryReportData.noteMap.get(schueler.id);
             if (secNoteData) {
-                // Determine details for secondary report
                 let secSammelnoteDetails: any[] = [];
                 let secAufgabenDetails: any[] = [];
                 
-                // Assuming mostly Sammelnote for secondary as per requirement
                 if (secondaryReportData.leistungsnachweis.typ === 'sammelnote') {
-                     // We need the global `notenMap` (which contains ALL notes) to find details for secondary LN.
-                     // Fortunately `props.notenMap` in this context IS the global `einzelLeistungsNoten` converted.
                      secSammelnoteDetails = (secondaryReportData.details as EinzelLeistung[]).map(el => {
                         const noteRecord = notenMap?.get(`${schueler.id}-${el.id}`);
                         return {
@@ -479,9 +485,6 @@ export const generateSchuelerBerichtePDF = async (props: GeneratePDFProps) => {
                             weighting: el.gewichtung
                         };
                     });
-                } else {
-                    // Klausur secondary - simplify or map from global points
-                    // For now, we will skip detailed tasks for secondary klausur to avoid complexity unless requested
                 }
 
                 const secFeedbackRecord = secondaryReportData.feedbackList.find(f => f.schuelerId === schueler.id);
@@ -493,23 +496,19 @@ export const generateSchuelerBerichtePDF = async (props: GeneratePDFProps) => {
                     aufgabenDetails: secAufgabenDetails,
                     sammelnoteDetails: secSammelnoteDetails,
                     feedback: secFeedbackRecord?.feedbackText || '',
-                    klausurDaten: null, // No stats for secondary
+                    klausurDaten: null,
                     sammelnoteDaten: null,
-                    includeNotenspiegel: false, // Usually no mirror for secondary
-                    showSignatures: true, // Show signature here
+                    includeNotenspiegel: false,
+                    showSignatures: true,
                     notensystem,
                 };
 
-                // Calculate Y position for secondary report (bottom half)
-                // Use a simple vertical layout for combined report: Primary on Top, Secondary on Bottom
-                // No dashed line if it's a combined report
-                const secYPos = yPos + reportHeight + spacing; // Add spacing gap
-                
+                const secYPos = yPos + reportHeight + spacing;
                 drawReport(pdf, secondaryReportProps, pageMargin, secYPos, reportWidth, reportHeight);
             }
         } else {
             // Standard Mode: Dashed line between reports on same page if it's the first of two
-            if (schuelerCount % reportsPerPage < reportsPerPage - 1 && schuelerCount < teilnehmendeSchueler.length - 1) {
+            if (schuelerCount % 2 === 0 && schuelerCount < teilnehmendeSchueler.length - 1) {
                  const lineY = yPos + reportHeight + (spacing / 2);
                  pdf.setDrawColor(COLORS.textSecondary);
                  pdf.setLineDashPattern([2, 2], 0);
@@ -518,7 +517,6 @@ export const generateSchuelerBerichtePDF = async (props: GeneratePDFProps) => {
             }
         }
         
-        yPos += secondaryReportData ? 0 : (reportHeight + spacing); // If combined, we used full page, loop resets yPos next iteration
         schuelerCount++;
     }
 
@@ -597,8 +595,6 @@ export const generateGesamtuebersichtPDF = async (props: GesamtuebersichtPDFProp
         const gridStartX = pageMargin + schuelerColWidthMm;
 
         headerData.rows.flat().forEach(cell => {
-            // FIX: The `gridColumn` and `gridRow` properties are of type `string | number`.
-            // Convert them to a string before calling `.match()` to avoid a type error.
             const gridColMatch = String(cell.style.gridColumn)?.match(/(\d+)\s*\/\s*(\d+)/);
             const gridRowMatch = String(cell.style.gridRow)?.match(/(\d+)\s*\/\s*(\d+)/);
 
@@ -763,7 +759,6 @@ export const generateSammelnotePDF = async (props: {
             pdf.setFontSize(10);
             pdf.setTextColor(COLORS.textPrimary);
             
-            // Manual truncation logic
             const truncatedName = truncateText(el.name, elColWidth - 4);
             pdf.text(truncatedName, currentX + elColWidth / 2, currentY + 7, { align: 'center' });
             

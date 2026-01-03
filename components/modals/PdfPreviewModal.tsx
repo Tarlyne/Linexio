@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { CloseIcon, DocumentArrowDownIcon, SpinnerIcon } from '../icons';
 import Button from '../ui/Button';
-import { Leistungsnachweis, NoteMapEntry, Schueler, KlausuraufgabePunkte, SchuelerLeistungsnachweisFeedback, Notensystem, EinzelLeistung, EinzelLeistungsNote } from '../../context/types';
+import { Leistungsnachweis, NoteMapEntry, Schueler, KlausuraufgabePunkte, SchuelerLeistungsnachweisFeedback, Notensystem, EinzelLeistung, EinzelLeistungsNote, Klausuraufgabe } from '../../context/types';
 import SchuelerberichtPDFLayout from '../pdf/SchuelerberichtPDFLayout';
 import { generateSchuelerBerichtePDF } from '../../services/PdfExportService';
-import { useToastContext } from '../../context/ToastContext';
 import { isAppleMobile } from '../../context/utils';
 import DownloadAnleitungModal from './DownloadAnleitungModal';
 
@@ -71,9 +70,6 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
         .filter(s => pdfProps.schuelerKlausurNotenMap.has(s.id))
         .sort((a,b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName));
     
-    // If combined report, show all at once (scrolling), otherwise chunk
-    const reportsPerPage = 1; 
-    
     // For Pagination in Preview if list is long
     const pages = [];
     // If combined, 1 student per "page", otherwise 2 per "page" (conceptually)
@@ -119,24 +115,18 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
             let sammelnoteDetails: any[] = [];
             
             if (ln.typ === 'klausur') {
-                // Secondary Klausur (less common, but possible)
-                // We'd need points map here, which is complex if dynamic. 
-                // For now, assume simplified details if passed in secondaryReportData.details
-                // In KlausurAuswertungView we passed the `aufgaben` object.
-                // We can't easily re-calculate points per task here without passing point maps.
-                // Simplified: Pass calculated details if available or just task names.
-                // NOTE: The current implementation passes `aufgaben` or `einzelLeistungen` arrays in `details`.
-                // We need to re-map to include student-specific values.
-                // Since `secondaryReportData` is calculated "on-the-fly" in KlausurView without per-student details yet,
-                // let's adjust KlausurView to pass full context or handle it here.
-                // Correction: The `noteMap` passed in secondaryReportData contains `NoteMapEntry` which has final grade.
-                // It does NOT have per-task points. 
-                // To keep it simple for this iteration: Secondary reports show simplified info or we skip detailed task breakdown if data missing.
-                // Ideally, `secondaryReportData` should allow `getDetails(schuelerId)` function.
-                // BUT: `pdfProps.klausuraufgabePunkte` is GLOBAL context. If secondary is klausur, we have points in context!
-                // Let's assume secondary is Sammelnote mostly.
+                // Secondary Klausur: Map tasks to student-specific points using the global context
+                aufgabenDetails = (secondaryReportData.details as Klausuraufgabe[]).map(aufgabe => {
+                    const punkteEintrag = pdfProps.klausuraufgabePunkte.find(p => p.schuelerId === schueler.id && p.aufgabeId === aufgabe.id);
+                    return {
+                        id: aufgabe.id,
+                        name: aufgabe.name,
+                        erreichtePunkte: punkteEintrag?.punkte ?? 0,
+                        maxPunkte: aufgabe.maxPunkte,
+                    };
+                });
             } else {
-                 // Secondary is Sammelnote (most likely)
+                 // Secondary Sammelnote: Map items to student-specific grades using the provided map
                  sammelnoteDetails = (secondaryReportData.details as EinzelLeistung[]).map(el => {
                     const noteRecord = pdfProps.notenMap?.get(`${schueler.id}-${el.id}`);
                     return {
@@ -167,7 +157,7 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
         if (!noteData) return null;
 
         let aufgabenDetails: any[] = [];
-        let sammelnoteDetails: any[] = undefined;
+        let sammelnoteDetails: any[] | undefined = undefined;
 
         if (isSammelnote && pdfProps.einzelLeistungen && pdfProps.notenMap) {
             if (options.showDetails) {
