@@ -1,9 +1,9 @@
 // public/service-worker.js
 
-// Force Update: 2025-12-11T12:00:00 (Manual Cache Buster)
+// Force Update: 2026-01-04T12:00:00 (Manual Cache Buster)
 // Jede neue Version der App benötigt einen neuen Cache-Namen.
 // Das Ändern dieser Versionsnummer löst den Update-Prozess im Browser aus.
-const CACHE_NAME = 'linexio-v46';
+const CACHE_NAME = 'linexio-v47';
 const urlsToCache = [
   './',
   'index.html',

@@ -4,6 +4,15 @@ export const CHANGELOG: ChangelogData = {
   "_comment": "Hinweis: Wir behalten künftig nur die letzten 3 Versionen im Verlauf, um die Datei übersichtlich zu halten.",
   "versions": [
     {
+      "version": "0.9.78-alpha",
+      "date": "2026-01-04",
+      "changes": [
+        "PDF-Export: Vertikale Positionierung bei kombinierten Berichten korrigiert (kein Überlaufen mehr).",
+        "Refactoring: Vollständiges Daten-Mapping für Sekundärberichte (Aufgabenpunkte & Einzelnoten werden nun korrekt zugeordnet).",
+        "Stabilität: Interne Datenflüsse zwischen Vorschau und Export synchronisiert."
+      ]
+    },
+    {
       "version": "0.9.75-alpha",
       "date": "2025-12-11",
       "changes": [
@@ -20,13 +29,6 @@ export const CHANGELOG: ChangelogData = {
         "Feature: Gruppen bleiben nun gespeichert und können individuell benannt werden.",
         "Fix: Das 'Was ist neu?'-Fenster lädt nun zuverlässig auf allen Geräten (iPad/PWA Fix).",
         "Technik: Interne Optimierungen bei der Notenspeicherung."
-      ]
-    },
-    {
-      "version": "0.9.73-alpha",
-      "date": "2025-12-05",
-      "changes": [
-        "Wartungsupdate: Optimierungen und Stabilitätsverbesserungen."
       ]
     }
   ]

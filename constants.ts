@@ -1,4 +1,4 @@
 // Global constants.
 // Import these in other files using: import { ... } from './constants';
 
-export const APP_VERSION = '0.9.75-alpha';
+export const APP_VERSION = '0.9.78-alpha';
