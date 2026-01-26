@@ -128,7 +128,7 @@ const NotizenView: React.FC = () => {
                                             className="w-full text-left p-4 rounded-lg hover:bg-[var(--color-ui-secondary)] transition-colors"
                                         >
                                             <h3 className="font-bold text-[var(--color-accent-text)] truncate">{notiz.title}</h3>
-                                            <p className="text-sm text-[var(--color-text-tertiary)] line-clamp-2 mt-1">{notiz.content}</p>
+                                            <p className="text-sm text-[var(--color-text-tertiary)] line-clamp-2 mt-1 whitespace-pre-line">{notiz.content}</p>
                                             <p className="text-xs text-[var(--color-text-tertiary)]/70 mt-2">{new Date(notiz.updatedAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                                         </button>
                                     ))}

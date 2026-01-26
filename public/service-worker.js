@@ -1,9 +1,10 @@
 // public/service-worker.js
 
-// Force Update: 2026-01-04T12:00:00 (Manual Cache Buster)
-// Jede neue Version der App benötigt einen neuen Cache-Namen.
-// Das Ändern dieser Versionsnummer löst den Update-Prozess im Browser aus.
-const CACHE_NAME = 'linexio-v47';
+// Force Update: 2026-01-05T14:30:00 (Manual Cache Buster)
+// Wir erhöhen die Version, um sicherzustellen, dass das iPad den neuen Wächter lädt.
+const CACHE_NAME = 'linexio-core-v50';
+const RUNTIME_CACHE_NAME = 'linexio-runtime-v1';
+
 const urlsToCache = [
   './',
   'index.html',
@@ -11,60 +12,54 @@ const urlsToCache = [
   'logo192.png',
   'logo512.png',
   'apple-touch-icon.png',
-  // 'changelog.json', // ENTFERNT: Changelog ist jetzt fest im Code (data/changelog.ts)
   'favicon.png',
-  'splash/ios-splash-2048x2732.png', // iPad Pro 12.9 Portrait
-  'splash/ios-splash-2732x2048.png', // iPad Pro 12.9 Landscape
-  'splash/ios-splash-1640x2360.png', // iPad Air Portrait
-  'splash/ios-splash-2360x1640.png', // iPad Air Landscape
-  'splash/ios-splash-1536x2048.png', // iPad 10.2 Portrait
-  'splash/ios-splash-2048x1536.png', // iPad 10.2 Landscape
+  'index.css',
+  'index.tsx', // In dieser Umgebung wird die .tsx direkt als Modul geladen und muss gecached werden
 ];
 
-// 1. Installations-Event: Der neue Service Worker wird installiert
+// 1. Installations-Event: Statische Assets (App-Shell) cachen
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
+        console.log('SW: Caching static assets...');
         return cache.addAll(urlsToCache);
       })
-      // WICHTIG: Kein self.skipWaiting() hier. Der SW wartet auf eine Anweisung.
   );
 });
 
-// 2. Aktivierungs-Event: Der neue Service Worker übernimmt die Kontrolle
+// 2. Aktivierungs-Event: Alte Caches säubern
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
+  const cacheWhitelist = [CACHE_NAME, RUNTIME_CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          // Lösche alle alten Caches, die nicht mehr benötigt werden
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
+          if (!cacheWhitelist.includes(cacheName)) {
+            console.log('SW: Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
-        // Übernimmt die Kontrolle über alle offenen App-Tabs
+        // Übernimmt sofort die Kontrolle, ohne auf Neuladen zu warten
         return self.clients.claim();
     })
   );
 });
 
-// 3. Nachrichten-Handler: Lauscht auf Befehle von der App
+// 3. Nachrichten-Handler
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-
-// 4. Fetch-Event: Liefert Anfragen aus dem Cache oder vom Netzwerk
+// 4. Fetch-Event: Der Offline-Schutzmechanismus
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Für Navigationsanfragen (App-Start), liefere die index.html aus (App-Shell-Modell).
+  // Strategie für Navigationsanfragen (App-Start)
   if (event.request.mode === 'navigate') {
     event.respondWith(
       caches.match('index.html').then(response => {
@@ -74,13 +69,40 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Für alle anderen Anfragen (JS, CSS, Bilder etc.) wird die "Cache-First"-Strategie verwendet.
-  // WICHTIG: index.tsx wird im production build nicht existieren,
-  // daher hier nicht cachen, um 404 Fehler zu vermeiden.
-  if (url.pathname.endsWith('index.tsx')) {
-      return;
+  // KRITISCH: Erkenne CDN-Anfragen für Bibliotheken (React, Google AI, ESM.sh)
+  // Ohne diese ist die App funktionsunfähig, wenn sie nicht im Cache sind.
+  const isExternalLibrary = url.hostname.includes('aistudiocdn.com') || url.hostname.includes('esm.sh');
+
+  if (isExternalLibrary) {
+    event.respondWith(
+      caches.open(RUNTIME_CACHE_NAME).then(cache => {
+        return cache.match(event.request).then(cachedResponse => {
+          // Falls im Cache: Sofort liefern
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+
+          // Falls nicht im Cache: Laden und für die Zukunft speichern
+          return fetch(event.request).then(networkResponse => {
+            // Nur erfolgreiche Antworten cachen (200 OK)
+            if (networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => {
+              // Netzwerkfehler und nichts im Cache
+              return new Response('Linexio Offline-Fehler: Bibliothek nicht im Cache.', { 
+                status: 503, 
+                statusText: 'Service Unavailable' 
+              });
+          });
+        });
+      })
+    );
+    return;
   }
 
+  // Cache-First Strategie für alle anderen lokalen Assets
   event.respondWith(
     caches.match(event.request).then(response => {
       return response || fetch(event.request);

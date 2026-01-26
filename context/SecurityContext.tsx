@@ -9,7 +9,6 @@ import { db } from '../store/db';
 import { runMigrations } from '../store/migration';
 import { useLocalStorage } from './utils';
 
-// NEW: Define the explicit states for our security state machine
 export type SecurityState = 'INITIALIZING' | 'LOCKED' | 'SETTING_PASSWORD' | 'RECOVERING' | 'UNLOCKED' | 'AWAITING_BIOMETRIC';
 
 interface SecurityContextState {
@@ -58,26 +57,21 @@ export const SecurityContextProvider: React.FC<{ children: ReactNode }> = ({ chi
     
     const [securityState, setSecurityState] = useState<SecurityState>('INITIALIZING');
     const [error, setError] = useState<string | null>(null);
+    const [minLoadingTimeFinished, setMinLoadingTimeFinished] = useState(false);
 
-    const [autoLockTimeout, setAutoLockTimeout] = useLocalStorage('autoLockTimeout', 600000); // Default 10 minutes
+    const [autoLockTimeout, setAutoLockTimeout] = useLocalStorage('autoLockTimeout', 600000); 
     const [isInactiveWarning, setIsInactiveWarning] = useState(false);
 
     const inactivityTimerRef = useRef<number | null>(null);
     const warningTimerRef = useRef<number | null>(null);
-    
-    // NEU: Tracking des letzten Aktivitätszeitpunkts für robuste Berechnung nach Standby
     const lastActivityTimestamp = useRef<number>(Date.now());
 
     const isAppleDevice = useMemo(() => {
-        // A common check for Apple devices (iPhone, iPad, Mac)
-        // FIX: Add type assertion to 'any' to handle non-standard browser properties `userAgentData` and `MSStream` without causing TypeScript errors.
         const platform = (navigator as any)?.userAgentData?.platform || navigator.platform;
         return /Mac|iPhone|iPad|iPod/.test(platform) && !(window as any).MSStream;
     }, []);
 
     const isBiometricsSupported = useMemo(() => {
-        // The Credential Management API for passwords is not supported for biometrics on iOS/iPadOS.
-        // We explicitly disable it on Apple devices to prevent user confusion.
         return !!(navigator.credentials && navigator.credentials.create) && !isAppleDevice;
     }, [isAppleDevice]);
 
@@ -90,25 +84,19 @@ export const SecurityContextProvider: React.FC<{ children: ReactNode }> = ({ chi
     }, []);
 
     const resetInactivityTimer = useCallback(() => {
-        // NEU: Zeitstempel aktualisieren bei jeder Aktivität
         lastActivityTimestamp.current = Date.now();
-
         if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
         if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
-        
         setIsInactiveWarning(false);
 
-        if (autoLockTimeout === 0 || autoLockTimeout < 60000) { // 0 means 'Niemals' or timeout too short
-            return;
-        }
+        if (autoLockTimeout === 0 || autoLockTimeout < 60000) return;
 
         inactivityTimerRef.current = window.setTimeout(() => {
             setIsInactiveWarning(true);
             warningTimerRef.current = window.setTimeout(() => {
                 logout();
-            }, 60000); // 1 minute warning
-        }, autoLockTimeout - 60000); // Fire warning 1 minute before logout
-
+            }, 60000);
+        }, autoLockTimeout - 60000);
     }, [autoLockTimeout, logout]);
     
     const onExtendSession = useCallback(() => {
@@ -116,12 +104,11 @@ export const SecurityContextProvider: React.FC<{ children: ReactNode }> = ({ chi
     }, [resetInactivityTimer]);
 
     useEffect(() => {
+        // Start initialization and the min-timer simultaneously
         securityStore.init();
+        setTimeout(() => setMinLoadingTimeFinished(true), 2000);
     }, []);
 
-    // NEU: Visibility Change Handler
-    // Prüft beim "Aufwachen" der App (Tab sichtbar), wie viel echte Zeit vergangen ist.
-    // Dies umgeht das Problem, dass setTimeout auf iOS im Hintergrund pausiert wird.
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && securityState === 'UNLOCKED' && autoLockTimeout > 0) {
@@ -129,23 +116,19 @@ export const SecurityContextProvider: React.FC<{ children: ReactNode }> = ({ chi
                 const elapsed = now - lastActivityTimestamp.current;
                 
                 if (elapsed >= autoLockTimeout) {
-                    // Zeit im Hintergrund abgelaufen -> Sofortiger Logout
                     logout();
                 } else if (elapsed >= autoLockTimeout - 60000) {
-                    // Kritische Zone (< 60s übrig). Warnung sofort anzeigen und Restzeit setzen.
                     if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
                     if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
                     
                     setIsInactiveWarning(true);
                     const remaining = autoLockTimeout - elapsed;
-                    // Sicherstellen, dass remaining positiv ist, sonst sofort logout
                     if (remaining <= 0) {
                         logout();
                     } else {
                         warningTimerRef.current = window.setTimeout(logout, remaining);
                     }
                 } else {
-                    // Alles okay, Timer zurücksetzen (User ist ja jetzt wieder aktiv)
                     resetInactivityTimer();
                 }
             }
@@ -158,7 +141,8 @@ export const SecurityContextProvider: React.FC<{ children: ReactNode }> = ({ chi
     }, [securityState, autoLockTimeout, logout, resetInactivityTimer]);
 
     useEffect(() => {
-        if (storeState.isInitialized && securityState === 'INITIALIZING') {
+        // Transition to next state ONLY if DB is initialized AND the 2s breathing time passed
+        if (storeState.isInitialized && minLoadingTimeFinished && securityState === 'INITIALIZING') {
             if (storeState.isPasswordSet) {
                 if (storeState.isBiometricsEnabled && isBiometricsSupported) {
                     setSecurityState('AWAITING_BIOMETRIC');
@@ -169,19 +153,16 @@ export const SecurityContextProvider: React.FC<{ children: ReactNode }> = ({ chi
                 setSecurityState('SETTING_PASSWORD');
             }
         }
-    }, [storeState.isInitialized, storeState.isPasswordSet, storeState.isBiometricsEnabled, securityState, isBiometricsSupported]);
+    }, [storeState.isInitialized, minLoadingTimeFinished, storeState.isPasswordSet, storeState.isBiometricsEnabled, securityState, isBiometricsSupported]);
 
     useEffect(() => {
         if (securityState === 'UNLOCKED') {
             resetInactivityTimer();
         } else {
-            // Clear timers if not unlocked
             if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
             if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
             setIsInactiveWarning(false);
         }
-        
-        // Cleanup on unmount
         return () => {
             if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
             if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
@@ -290,15 +271,6 @@ export const SecurityContextProvider: React.FC<{ children: ReactNode }> = ({ chi
         }
 
         try {
-            // ARCHITEKTONISCHES MEMORANDUM: Biometrie-Timing
-            // Die folgende Zeile wurde bewusst entfernt: `await verifyPasswordForAction(password);`
-            // Grund: Der `await`-Aufruf unterbricht die direkte Kette zwischen der Nutzerinteraktion (Passwort-Bestätigungsklick)
-            // und dem `navigator.credentials.create`-Aufruf. Moderne Browser blockieren `create()` aus Sicherheitsgründen,
-            // wenn es nicht als direkte Folge einer Nutzeraktion stattfindet.
-            // Die Sicherheit bleibt gewahrt, da das Passwort direkt an die `create`-API übergeben wird,
-            // die es intern zur Authentifizierung des Vorgangs nutzt. Diese Änderung behebt das Problem,
-            // dass die Biometrie-Aktivierung in PWAs und anderen sicheren Kontexten fehlschlug.
-
             const credential = await navigator.credentials.create({
                 password: {
                     id: 'linexio-user-credential',
@@ -311,25 +283,18 @@ export const SecurityContextProvider: React.FC<{ children: ReactNode }> = ({ chi
                 await navigator.credentials.store(credential);
                 await securityStore.setBiometricsEnabled(true);
             } else {
-                // This can happen if the user cancels the OS-level prompt
                 throw new Error("Die Erstellung der biometrischen Anmeldeinformation wurde abgebrochen.");
             }
 
         } catch (err: any) {
             await securityStore.setBiometricsEnabled(false);
-
-            // Check for specific error from verifyPasswordForAction (if it were still here)
             if (err.message.includes("Das aktuelle Passwort ist falsch")) {
-                 throw err; // Re-throw the specific password error
+                 throw err;
             }
-            
-            // Re-check if the password itself is correct, as the native API might fail for a wrong password
             const isPasswordCorrect = await securityStore.verifyPassword(password);
             if(!isPasswordCorrect) {
                 throw new Error("Das aktuelle Passwort ist falsch.");
             }
-
-            // General failure message for other cases (e.g., user cancellation, OS error)
             throw new Error("Biometrie konnte nicht aktiviert werden. Die Eingabe wurde möglicherweise unterbrochen.");
         }
     }, [isBiometricsSupported]);

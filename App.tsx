@@ -16,6 +16,7 @@ import BiometricUnlockScreen from './components/BiometricUnlockScreen';
 import InactivityWarningModal from './components/modals/InactivityWarningModal';
 import { LicenseContextProvider } from './context/LicenseContext';
 import { TermineContextProvider } from './context/TermineContext';
+import PreLoader from './components/ui/PreLoader';
 
 const AppContent: React.FC = () => {
     const { 
@@ -47,10 +48,9 @@ const AppContent: React.FC = () => {
     }, [securityState, resetInactivityTimer]);
 
 
-    // UPDATED: Use a switch statement for cleaner state management
     switch (securityState) {
         case 'INITIALIZING':
-            return <div className="flex h-screen w-full items-center justify-center bg-[var(--color-background)]"><p>Initialisiere...</p></div>;
+            return <PreLoader />;
         
         case 'AWAITING_BIOMETRIC':
             return <BiometricUnlockScreen />;
@@ -95,16 +95,12 @@ const AppContent: React.FC = () => {
             );
 
         default:
-            // This should not happen, but it's good practice to have a fallback.
             return null;
     }
 };
 
 
 const App: React.FC = () => {
-  // NEW: Global effect to distinguish mouse vs. keyboard interaction
-  // This adds a 'using-mouse' class to the body on mousedown, and removes it
-  // on Tab keydown. A global CSS rule then disables focus rings for mouse users.
   useEffect(() => {
     const handleMouseDown = () => {
       document.body.classList.add('using-mouse');
