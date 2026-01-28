@@ -5,19 +5,19 @@
   "scope": "/Linexio/",
   "icons": [
     {
-      "src": "/Linexio/splash/logo192.png",
+      "src": "/Linexio/logo192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "/Linexio/splash/logo512.png",
+      "src": "/Linexio/logo512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "/Linexio/splash/logo512.png",
+      "src": "/Linexio/logo512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
