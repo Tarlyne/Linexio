@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linexio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PWA Manifest & Icons (Relative Paths for Maximum Compatibility) -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="logo192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="logo192.png">
+    
+    <link rel="shortcut icon" href="favicon.png">
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="logo192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="logo512.png">
+
+    <!-- Windows Tile Support & Modern Meta -->
+    <meta name="msapplication-TileImage" content="logo192.png">
+    <meta name="msapplication-TileColor" content="#111827">
+    <meta name="application-name" content="Linexio">
+
+    <!-- PWA Meta Tags for Standalone Mode -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Linexio">
+
+    <!-- Universaler iOS Splash Screen -->
+    <link rel="apple-touch-startup-image" href="splash-universal.png">
+
+    <meta name="theme-color" content="#1f2937" />
+    <style>
+      :root {
+        /* --- Base Dark Theme (Aurora) --- */
+        --color-background: #111827;
+        --color-background-subtle: #1D2433;
+        --color-ui-primary: #1f2937;
+        --color-ui-secondary: #374151;
+        --color-ui-tertiary: #4b5563;
+        --color-ui-highlight: #111827;
+        --color-ui-zebra-stripe: rgba(255, 255, 255, 0.05);
+        
+        --color-border: #374151;
+        --color-text-primary: #f3f4f6;
+        --color-text-secondary: #d1d5db;
+        --color-text-tertiary: #9ca3af;
+
+        --color-accent-primary: #0891b2;
+        --color-accent-primary-hover: #0e7490;
+        --color-accent-secondary: #164e63;
+        --color-accent-secondary-transparent-40: rgba(22, 78, 99, 0.4);
+        --color-accent-secondary-transparent-50: rgba(22, 78, 99, 0.5);
+        --color-accent-text: #22d3ee;
+        --color-accent-text-inverted: #a5f3fc;
+        --color-accent-border-focus: #06b6d4;
+
+        --color-danger-primary: #dc2626;
+        --color-danger-primary-hover: #b91c1c;
+        --color-danger-text: #f87171;
+        --color-danger-background-transparent: rgba(127, 29, 29, 0.5);
+        --color-danger-border: #991b1b;
+        
+        --color-warning-primary-transparent: rgba(217, 119, 6, 0.9);
+        --color-warning-secondary-transparent: rgba(113, 63, 18, 0.5);
+        --color-warning-text: #facc15;
+        
+        --color-success-text: #4ade80;
+        --color-shadow: rgba(8, 145, 178, 0.25);
+
+        --color-scrollbar-track: #1f2937;
+        --color-scrollbar-thumb: #4b5563;
+        --color-scrollbar-thumb-hover: #6b7280;
+      }
+
+      /* Logo Breathing Animation */
+      @keyframes logo-breathing {
+        0% { transform: scale(0.95); opacity: 0.8; }
+        50% { transform: scale(1.05); opacity: 1; }
+        100% { transform: scale(0.95); opacity: 0.8; }
+      }
+      .animate-logo-breathing {
+        animation: logo-breathing 2.5s ease-in-out infinite;
+      }
+
+      /* NEW: Loading Sweep Animation */
+      @keyframes loading-sweep {
+        0% { left: -100%; }
+        100% { left: 100%; }
+      }
+      .animate-loading-sweep {
+        position: relative;
+        overflow: hidden;
+      }
+      .animate-loading-sweep::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(to right, transparent, var(--color-accent-text), transparent);
+        animation: loading-sweep 1.5s infinite ease-in-out;
+      }
+
+      body {
+        background-color: #111827;
+        background-image: 
+          radial-gradient(circle at 25% 25%, var(--color-background-subtle) 0%, var(--color-background) 50%),
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.3s ease-in-out;
+      }
+      /* Custom Scrollbar Styles */
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: var(--color-scrollbar-track); }
+      ::-webkit-scrollbar-thumb { background-color: var(--color-scrollbar-thumb); border-radius: 10px; border: 2px solid var(--color-scrollbar-track); }
+      ::-webkit-scrollbar-thumb:hover { background-color: var(--color-scrollbar-thumb-hover); }
+      ::-webkit-scrollbar-corner { background: var(--color-scrollbar-track); }
+      .focus-overlay::before { content: ''; position: absolute; inset: 0; background-color: var(--color-background); opacity: 0.95; z-index: 10; }
+      .glossy-bar::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(to bottom, rgba(255, 255, 255, 0.25), transparent); pointer-events: none; }
+
+      /* Aurora Background Effect */
+      @keyframes move-aurora {
+        0%   { transform: translate(-10vw, -20vh) rotate(0deg) scale(1.2); }
+        25%  { transform: translate(20vw, 15vh) rotate(90deg) scale(0.9); }
+        50%  { transform: translate(15vw, -25vh) rotate(180deg) scale(1.1); }
+        75%  { transform: translate(-25vw, 10vh) rotate(270deg) scale(0.8); }
+        100% { transform: translate(-10vw, -20vh) rotate(360deg) scale(1.2); }
+      }
+      .aurora-container::before, .aurora-container::after, .stars-layer-2 { content: ''; position: absolute; inset: 0; pointer-events: none; }
+      .aurora-container::before { background: radial-gradient(circle, var(--color-accent-secondary-transparent-50), transparent 70%); width: 200vw; height: 200vh; top: -50%; left: -50%; opacity: 0.5; filter: blur(150px); animation: move-aurora 60s ease-in-out infinite; }
+      .aurora-container::after { width: 1px; height: 1px; background: transparent; border-radius: 50%; box-shadow: 757px 1101px #FFF, 1904px 1478px #FFF, 452px 583px #FFF, 1284px 1451px #FFF, 885px 1935px #FFF, 124px 1149px #FFF, 1488px 1568px #FFF, 1146px 1319px #FFF, 1261px 1939px #FFF, 1089px 1321px #FFF, 1073px 139px #FFF, 1238px 103px #FFF, 175px 1435px #FFF, 1475px 448px #FFF, 532px 1488px #FFF, 1113px 1833px #FFF, 1279px 248px #FFF, 843px 293px #FFF, 1782px 127px #FFF, 246px 617px #FFF, 1735px 839px #FFF, 1332px 338px #FFF, 1891px 1880px #FFF, 1303px 432px #FFF, 1858px 730px #FFF, 180px 483px #FFF, 1533px 1009px #FFF, 561px 1982px #FFF, 1599px 104px #FFF, 1140px 1827px #FFF, 1433px 804px #FFF, 1205px 1390px #FFF, 1172px 196px #FFF, 1137px 32px #FFF, 1863px 1363px #FFF, 1003px 381px #FFF, 112px 897px #FFF, 1184px 1105px #FFF, 1483px 1820px #FFF, 792px 1294px #FFF, 1139px 1215px #FFF, 1419px 155px #FFF, 85px 1261px #FFF, 1877px 1215px #FFF, 1740px 25px #FFF, 1360px 1129px #FFF, 101px 348px #FFF, 1188px 1370px #FFF, 820px 185px #FFF, 403px 1913px #FFF, 1759px 1195px #FFF, 933px 1138px #FFF, 1421px 615px #FFF, 1243px 1633px #FFF, 1103px 497px #FFF, 1386px 862px #FFF, 1709px 1324px #FFF, 188px 1152px #FFF, 1978px 626px #FFF, 873px 117px #FFF, 1238px 679px #FFF, 1829px 1528px #FFF, 149px 1038px #FFF, 1317px 1357px #FFF, 1509px 545px #FFF, 1236px 1557px #FFF, 1129px 1358px #FFF, 1974px 911px #FFF, 1305px 1095px #FFF; }
+      .stars-layer-2 { width: 2px; height: 2px; background: transparent; border-radius: 50%; box-shadow: 525px 1493px #FFF, 1599px 105px #FFF, 1035px 23px #FFF, 1184px 1702px #FFF, 1694px 1384px #FFF, 1131px 538px #FFF, 1010px 1749px #FFF, 1323px 1034px #FFF, 1852px 1098px #FFF, 1952px 1490px #FFF, 1357px 1111px #FFF, 546px 1395px #FFF, 1075px 1587px #FFF, 1801px 563px #FFF, 1205px 1175px #FFF, 149px 728px #FFF, 1355px 1868px #FFF, 129px 1381px #FFF, 1940px 620px #FFF, 629px 839px #FFF, 1289px 1118px #FFF, 1989px 1785px #FFF, 893px 1899px #FFF, 755px 1318px #FFF, 497px 104px #FFF, 90px 111px #FFF, 1530px 426px #FFF, 1133px 998px #FFF, 329px 1101px #FFF, 109px 1928px #FFF, 1024px 339px #FFF, 1192px 1157px #FFF, 887px 843px #FFF, 1934px 1822px #FFF, 303px 1147px #FFF, 1015px 198px #FFF, 1007px 1580px #FFF, 1084px 1656px #FFF, 1729px 1583px #FFF, 1341px 1819px #FFF, 1826px 1714px #FFF, 1541px 1753px #FFF, 620px 1726px #FFF, 1221px 127px #FFF, 1859px 153px #FFF, 874px 1546px #FFF, 1789px 1500px #FFF, 1710px 1815px #FFF, 1063px 1121px #FFF; }
+      body.using-mouse *:focus { outline: none !important; }
+      body.using-mouse [class*="focus:ring-"]:focus, body.using-mouse [class*="focus-visible:ring-"]:focus { --tw-ring-color: transparent !important; }
+      body.using-mouse [class*="focus:border-"]:focus, body.using-mouse [class*="focus-visible:border-"]:focus { border-color: var(--color-border) !important; }
+      html.no-scroll-on-drag, body.no-scroll-on-drag { overflow: hidden !important; overscroll-behavior: none !important; touch-action: none !important; -webkit-user-select: none !important; }
+      .draggable-item { touch-action: none; -webkit-user-select: none; }
+      @media (hover: hover) {
+        .desktop-hover-secondary:hover { background-color: var(--color-ui-secondary); transition: background-color 150ms; }
+        .desktop-hover-accent:hover { background-color: var(--color-accent-secondary-transparent-50); transition: background-color 150ms; }
+        .desktop-hover-text-primary:hover { color: var(--color-text-primary); }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0",
+    "uuid": "https://aistudiocdn.com/uuid@^10.0.0",
+    "idb": "https://esm.sh/idb@8",
+    "localforage": "https://aistudiocdn.com/localforage@^1.10.0",
+    "jspdf": "https://aistudiocdn.com/jspdf@^2.5.1",
+    "vitest": "https://aistudiocdn.com/vitest@^4.0.5",
+    "@testing-library/react": "https://aistudiocdn.com/@testing-library/react@^16.3.0",
+    "@testing-library/jest-dom": "https://aistudiocdn.com/@testing-library/jest-dom@^6.9.1",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "url": "https://aistudiocdn.com/url@^0.11.4"
+  }
+}
+</script>
+<link rel="stylesheet" href="index.css">
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module" src="index.tsx"></script>
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "cb584e6858724aeba526f470b339c168"}'></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
