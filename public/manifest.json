@@ -5,19 +5,19 @@
   "scope": "./",
   "icons": [
     {
-      "src": "logo192.png?v=20260201",
+      "src": "logo192_v2.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "logo512.png?v=20260201",
+      "src": "logo512_v2.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "logo512.png?v=20260201",
+      "src": "logo512_v2.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
