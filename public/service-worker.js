@@ -1,8 +1,8 @@
 // public/service-worker.js
 
-// Force Update: 2026-01-05T14:30:00 (Manual Cache Buster)
+// Force Update: 2026-02-01T13:30:00 (Manual Cache Buster)
 // Wir erhöhen die Version, um sicherzustellen, dass das iPad den neuen Wächter lädt.
-const CACHE_NAME = 'linexio-core-v50';
+const CACHE_NAME = 'linexio-core-v51';
 const RUNTIME_CACHE_NAME = 'linexio-runtime-v1';
 
 const urlsToCache = [
@@ -42,8 +42,8 @@ self.addEventListener('activate', event => {
         })
       );
     }).then(() => {
-        // Übernimmt sofort die Kontrolle, ohne auf Neuladen zu warten
-        return self.clients.claim();
+      // Übernimmt sofort die Kontrolle, ohne auf Neuladen zu warten
+      return self.clients.claim();
     })
   );
 });
@@ -90,11 +90,11 @@ self.addEventListener('fetch', event => {
             }
             return networkResponse;
           }).catch(() => {
-              // Netzwerkfehler und nichts im Cache
-              return new Response('Linexio Offline-Fehler: Bibliothek nicht im Cache.', { 
-                status: 503, 
-                statusText: 'Service Unavailable' 
-              });
+            // Netzwerkfehler und nichts im Cache
+            return new Response('Linexio Offline-Fehler: Bibliothek nicht im Cache.', {
+              status: 503,
+              statusText: 'Service Unavailable'
+            });
           });
         });
       })
