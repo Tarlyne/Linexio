@@ -1,18 +1,18 @@
 // public/service-worker.js
 
-// Force Update: 2026-02-01T13:30:00 (Manual Cache Buster)
+// Force Update: 2026-02-01T13:50:00 (Manual Cache Buster)
 // Wir erhöhen die Version, um sicherzustellen, dass das iPad den neuen Wächter lädt.
-const CACHE_NAME = 'linexio-core-v51';
+const CACHE_NAME = 'linexio-core-v52';
 const RUNTIME_CACHE_NAME = 'linexio-runtime-v1';
 
 const urlsToCache = [
   './',
   'index.html',
-  'manifest.json',
-  'logo192.png',
-  'logo512.png',
-  'apple-touch-icon.png',
-  'favicon.png',
+  'manifest.json?v=20260201',
+  'logo192.png?v=20260201',
+  'logo512.png?v=20260201',
+  'apple-touch-icon.png?v=20260201',
+  'favicon.png?v=20260201',
   'index.css',
   'index.tsx', // In dieser Umgebung wird die .tsx direkt als Modul geladen und muss gecached werden
 ];
