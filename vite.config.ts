@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
   const apiKey = env.GEMINI_API_KEY || 'MISSING_API_KEY_PLACEHOLDER';
 
   return {
-    base: './',
+    base: '/',
     server: {
       port: 3000,
       host: '0.0.0.0',
