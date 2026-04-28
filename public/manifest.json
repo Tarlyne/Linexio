@@ -1,8 +1,8 @@
 {
   "short_name": "Linexio",
   "name": "Linexio - Der Lehrer-Assistent",
-  "id": "./",
-  "scope": "./",
+  "id": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "logo192_v2.png",
@@ -23,7 +23,7 @@
       "purpose": "maskable"
     }
   ],
-  "start_url": "index.html",
+  "start_url": "/",
   "display": "standalone",
   "theme_color": "#1f2937",
   "background_color": "#111827"
