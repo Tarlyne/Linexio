@@ -2,6 +2,7 @@ import React, { createContext, useState, useCallback, ReactNode, useContext, use
 import { useLocalStorage, getSystemSchoolYear, calculateNextSchoolYear } from './utils';
 import { ChangelogData } from './types';
 import { CHANGELOG } from '../data/changelog';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 
 export type View = 'dashboard' | 'lerngruppen' | 'lerngruppeDetail' | 'schuelerAkte' | 'einstellungen' | 'tools-chooser' | 'notenverwaltung-chooser' | 'notenverwaltung' | 'leistungsnachweisDetail' | 'checklisten' | 'zufallsschueler' | 'gruppeneinteilung' | 'sitzplan' | 'notizen' | 'klausurAuswertung' | 'schuelerAuswertung' | 'sammelnoteAuswertung' | 'namenstraining';
 export type Theme = 'dark' | 'terranova' | 'solaris' | 'sepia' | 'amethyst' | 'scribe' | 'gold';
@@ -104,11 +105,20 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [lastSeenVersion, setLastSeenVersion] = useLocalStorage<string>('lastSeenVersion', '');
 
   // --- Update Logic State ---
-  const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
-  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
+  const {
+    needRefresh: [isUpdateAvailable, setIsUpdateAvailable],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegistered(r) {
+      console.log('SW Registered');
+    },
+    onRegisterError(error) {
+      console.log('SW registration error', error);
+    },
+  });
+
   const [isChangelogModalOpen, setChangelogModalOpen] = useState(false);
   const [changelogData, setChangelogData] = useState<ChangelogData | null>(null);
-  const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
   const showChangelog = useCallback(() => setChangelogModalOpen(true), []);
   
@@ -121,41 +131,14 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
   }, [appVersion, setLastSeenVersion]);
 
   // --- Aggressive Update Wächter ---
-  
-  // Diese Funktion prüft aktiv auf Updates, anstatt nur auf Browser-Events zu warten.
-  const checkForUpdates = useCallback(async () => {
-      const reg = registrationRef.current;
-      if (!reg) return;
-      
-      // Wenn bereits ein Update bereitsteht, müssen wir nicht mehr suchen.
-      if (updateRegistration && isUpdateAvailable) return;
-
-      try {
-          // Zwingt den Browser, die SW-Datei neu vom Server zu laden und Byte-für-Byte zu vergleichen.
-          await reg.update();
-          
-          // Nach dem Check prüfen: Wartet jemand?
-          if (reg.waiting) {
-              console.log('Update Wächter: Wartender Service Worker gefunden.');
-              setUpdateRegistration(reg);
-              setIsUpdateAvailable(true);
-          }
-      } catch (err) {
-          // Dies ist offline völlig normal.
-          console.debug('Update Wächter: Check fehlgeschlagen (wahrscheinlich offline).', err);
-      }
-  }, [updateRegistration, isUpdateAvailable]);
+  const checkForUpdates = useCallback(() => {
+      updateServiceWorker(false);
+  }, [updateServiceWorker]);
 
   const triggerUpdate = useCallback(() => {
-    if (updateRegistration && updateRegistration.waiting) {
-      updateRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
-      // Reset state immediately for better UX
+      updateServiceWorker(true);
       setIsUpdateAvailable(false);
-    } else {
-        // Fallback: Manchmal ist waiting null, obwohl ein Update da ist. Reload erzwingen.
-        window.location.reload();
-    }
-  }, [updateRegistration]);
+  }, [updateServiceWorker, setIsUpdateAvailable]);
   
   // CHANGELOG LOADING LOGIC
   useEffect(() => {
@@ -175,59 +158,6 @@ export const UIContextProvider: React.FC<{ children: ReactNode }> = ({ children 
         setAppVersion('Unbekannt');
     }
   }, [lastSeenVersion]);
-
-
-  useEffect(() => {
-      const registerServiceWorker = async () => {
-          if ('serviceWorker' in navigator) {
-              try {
-                  const reg = await navigator.serviceWorker.register('service-worker.js', { scope: './' });
-                  registrationRef.current = reg;
-
-                  // Initial check: is there already a waiting worker?
-                  if (reg.waiting) {
-                      console.log('SW Setup: Wartender Worker beim Start gefunden.');
-                      setUpdateRegistration(reg);
-                      setIsUpdateAvailable(true);
-                  }
-
-                  // Standard listener for updates arriving while app is open
-                  reg.onupdatefound = () => {
-                      const installingWorker = reg.installing;
-                      if (installingWorker) {
-                          installingWorker.onstatechange = () => {
-                              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                  console.log('SW Setup: Neuer Inhalt verfügbar (onstatechange).');
-                                  setUpdateRegistration(reg);
-                                  setIsUpdateAvailable(true);
-                              }
-                          };
-                      }
-                  };
-                  
-                  // Initialen manuellen Check durchführen (nach kurzer Verzögerung, um Netzwerk nicht beim Boot zu blockieren)
-                  setTimeout(checkForUpdates, 3000);
-
-              } catch (error) {
-                  console.error('Error during service worker registration:', error);
-              }
-
-              let refreshing = false;
-              navigator.serviceWorker.addEventListener('controllerchange', () => {
-                  if (!refreshing) {
-                      window.location.reload();
-                      refreshing = true;
-                  }
-              });
-          }
-      };
-
-      window.addEventListener('load', registerServiceWorker);
-      
-      return () => {
-          window.removeEventListener('load', registerServiceWorker);
-      };
-  }, [checkForUpdates]);
 
   // Aggressive Checks: Visibility Change & Interval & Navigation
   useEffect(() => {

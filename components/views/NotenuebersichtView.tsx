@@ -156,7 +156,7 @@ const NotenuebersichtView: React.FC = () => {
     const charWidth = 7;
     let calculatedWidth = baseWidth + longestNameLength * charWidth;
     calculatedWidth = Math.max(180, calculatedWidth);
-    calculatedWidth = Math.min(280, calculatedWidth);
+    calculatedWidth = Math.min(220, calculatedWidth);
     return calculatedWidth;
   }, [schuelerInSelectedLerngruppe]);
   

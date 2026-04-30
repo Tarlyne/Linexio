@@ -175,7 +175,7 @@ const LeistungsnachweisDetailView: React.FC = () => {
     // --- Common ---
     const schuelerColumnWidth = useMemo(() => {
         const longestNameLength = Math.max(0, ...(schueler || []).map(s => s.lastName.length + s.firstName.length));
-        return Math.min(280, Math.max(180, 80 + longestNameLength * 7));
+        return Math.min(220, Math.max(180, 80 + longestNameLength * 7));
     }, [schueler]);
 
     if (!leistungsnachweis || !lerngruppe || !notensystemForLerngruppe) {
@@ -228,7 +228,7 @@ const LeistungsnachweisDetailView: React.FC = () => {
                                 <div className="sticky left-0 z-10 flex items-center space-x-3 px-2 py-1 bg-[var(--color-ui-primary)] border-b border-r border-[var(--color-border)]">
                                     <button onClick={() => onToggleFocusSchueler(s.id)} disabled={isAnyFocused && !isFocused} className="p-1 rounded-full transition-colors group disabled:cursor-not-allowed disabled:opacity-50"><EyeIcon className={`w-5 h-5 transition-colors ${isFocused ? 'text-[var(--color-accent-text)]' : 'text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-primary)]'}`} /></button>
                                     <div className="w-8 h-8 bg-gradient-to-br from-[var(--color-accent-primary-hover)] to-[var(--color-accent-primary)] text-[var(--color-accent-text-inverted)] rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0">{getInitials(s.firstName, s.lastName)}</div>
-                                    <div><div className="font-bold text-[var(--color-text-primary)] truncate">{s.lastName},</div><div className="text-sm text-[var(--color-text-secondary)] truncate">{s.firstName}</div></div>
+                                    <div className="flex-1 min-w-0 overflow-hidden"><div className="font-bold text-[var(--color-text-primary)] overflow-hidden whitespace-nowrap">{s.lastName},</div><div className="text-sm text-[var(--color-text-secondary)] overflow-hidden whitespace-nowrap">{s.firstName}</div></div>
                                 </div>
                                 <div className="flex items-center justify-center p-1 border-b border-r border-[var(--color-border)] bg-[var(--color-ui-primary)] font-bold">
                                     <div className="h-10 w-14 rounded-md flex flex-col items-center justify-center bg-[var(--color-ui-secondary)] border border-[var(--color-accent-border-focus)]">
@@ -317,7 +317,7 @@ const LeistungsnachweisDetailView: React.FC = () => {
                                 <div className="sticky left-0 z-10 flex items-center space-x-3 px-2 py-1 bg-[var(--color-ui-primary)] border-b border-r border-[var(--color-border)]">
                                     <button onClick={() => onToggleFocusSchueler(s.id)} disabled={isAnyFocused && !isFocused} className="p-1 rounded-full group transition-colors"><EyeIcon className={`w-5 h-5 ${isFocused ? 'text-[var(--color-accent-text)]' : 'text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-primary)]'}`} /></button>
                                     <div className="w-8 h-8 bg-gradient-to-br from-[var(--color-accent-primary-hover)] to-[var(--color-accent-primary)] text-[var(--color-accent-text-inverted)] rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0">{getInitials(s.firstName, s.lastName)}</div>
-                                    <div><div className="font-bold text-[var(--color-text-primary)] truncate">{s.lastName},</div><div className="text-sm text-[var(--color-text-secondary)] truncate">{s.firstName}</div></div>
+                                    <div className="flex-1 min-w-0 overflow-hidden"><div className="font-bold text-[var(--color-text-primary)] overflow-hidden whitespace-nowrap">{s.lastName},</div><div className="text-sm text-[var(--color-text-secondary)] overflow-hidden whitespace-nowrap">{s.firstName}</div></div>
                                 </div>
                                 <div className="flex items-center justify-center p-1 border-b border-r border-[var(--color-border)] bg-[var(--color-ui-primary)] font-bold">
                                     <div className="h-10 w-14 rounded-md flex items-center justify-center bg-[var(--color-ui-secondary)] border border-[var(--color-accent-border-focus)]">

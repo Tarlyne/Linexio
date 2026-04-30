@@ -280,6 +280,51 @@
 --color-scrollbar-thumb-hover: #a8a29e; /* stone-400 */
 }
 
+.theme-gold {
+/* --- Gold Elegant Dark Theme --- */
+--color-background: #121212; /* Very dark, almost black */
+--color-background-subtle: #1A1A1A;
+--color-ui-primary: #1E1E1E;
+--color-ui-secondary: #2C2C2C;
+--color-ui-tertiary: #3D3D3D;
+--color-ui-highlight: #121212;
+--color-ui-zebra-stripe: rgba(255, 255, 255, 0.03);
+
+--color-border: #333333;
+
+/* Text */
+--color-text-primary: #EAEAEA;
+--color-text-secondary: #B3B3B3;
+--color-text-tertiary: #808080;
+
+/* Accents (Gold) */
+--color-accent-primary: #D4AF37; /* Classic Gold */
+--color-accent-primary-hover: #C5A033;
+--color-accent-secondary: #2A230B;
+--color-accent-secondary-transparent-40: rgba(212, 175, 55, 0.15);
+--color-accent-secondary-transparent-50: rgba(212, 175, 55, 0.25);
+--color-accent-text: #E6C762;
+--color-accent-text-inverted: #4A3C0B;
+--color-accent-border-focus: #D4AF37;
+
+--color-danger-primary: #DC2626;
+--color-danger-primary-hover: #B91C1C;
+--color-danger-text: #F87171;
+--color-danger-background-transparent: rgba(127, 29, 29, 0.5);
+--color-danger-border: #991b1b;
+
+--color-warning-primary-transparent: rgba(217, 119, 6, 0.9);
+--color-warning-secondary-transparent: rgba(113, 63, 18, 0.5);
+--color-warning-text: #FBBF24;
+
+--color-success-text: #4ADE80;
+--color-shadow: rgba(212, 175, 55, 0.2);
+
+--color-scrollbar-track: #1E1E1E;
+--color-scrollbar-thumb: #3D3D3D;
+--color-scrollbar-thumb-hover: #555555;
+}
+
 body {
 background-color: var(--color-background); /* Fallback */
 background-image:

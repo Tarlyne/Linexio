@@ -2,6 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,13 +20,46 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
-      {
-        name: 'remove-tailwind-cdn',
-        apply: 'build',
-        transformIndexHtml(html) {
-          return html.replace('<script src="https://cdn.tailwindcss.com"></script>', '');
+      VitePWA({
+        devOptions: {
+          enabled: true, // Prevents the manifest 404 error during npm run dev
         },
-      }
+        registerType: 'prompt',
+        injectRegister: 'auto',
+        includeAssets: ['favicon_v2.png', 'apple-touch-icon_v2.png', 'logo192_v2.png', 'logo512_v2.png', 'splash-universal.png', 'splash.png'],
+        manifest: {
+          short_name: "Linexio",
+          name: "Linexio - Der Lehrer-Assistent",
+          icons: [
+            {
+              src: "logo192_v2.png",
+              type: "image/png",
+              sizes: "192x192",
+              purpose: "any"
+            },
+            {
+              src: "logo512_v2.png",
+              type: "image/png",
+              sizes: "512x512",
+              purpose: "any"
+            },
+            {
+              src: "logo512_v2.png",
+              type: "image/png",
+              sizes: "512x512",
+              purpose: "maskable"
+            }
+          ],
+          start_url: "/",
+          display: "standalone",
+          theme_color: "#1f2937",
+          background_color: "#111827"
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
+          cleanupOutdatedCaches: true,
+        }
+      })
     ],
     define: {
       'process.env.API_KEY': JSON.stringify(apiKey),

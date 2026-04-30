@@ -77,9 +77,9 @@ export const NotenGridBody: React.FC<NotenGridBodyProps> = ({
                             <div className="w-8 h-8 bg-gradient-to-br from-[var(--color-accent-primary-hover)] to-[var(--color-accent-primary)] text-[var(--color-accent-text-inverted)] rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0">
                                 {getInitials(schueler.firstName, schueler.lastName)}
                             </div>
-                            <div>
-                                <div className="font-bold text-[var(--color-text-primary)] truncate">{schueler.lastName},</div>
-                                <div className="text-sm text-[var(--color-text-secondary)] truncate">{schueler.firstName}</div>
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                                <div className="font-bold text-[var(--color-text-primary)] overflow-hidden whitespace-nowrap">{schueler.lastName},</div>
+                                <div className="text-sm text-[var(--color-text-secondary)] overflow-hidden whitespace-nowrap">{schueler.firstName}</div>
                             </div>
                         </div>
                         <div className="grid flex-grow bg-[var(--color-border)] gap-x-px" style={{ gridTemplateColumns: columnTemplate }}>
